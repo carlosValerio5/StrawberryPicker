@@ -1,8 +1,8 @@
 """Per-label contact sheets: a random sample of each source label, tiled into one image.
 
 This is how a source's labels are checked before it's enabled. If the ``unripe`` sheet
-is full of red fruit, the mapping or the YOLO class order is wrong. Sheets show the raw
-bronze view (``exclude`` globs aren't applied) and never modify bronze.
+is full of red fruit, the mapping or the YOLO class order is wrong. Sheets apply the
+source's ``exclude`` globs, so they show what silver will see, and never modify bronze.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import random
 import re
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
+from fnmatch import fnmatch
 from pathlib import Path
 
 import pandas as pd
@@ -123,7 +124,11 @@ def build_contact_sheets(
     padding: float = 0.15,
 ) -> pd.DataFrame:
     """Write ``<label>.jpg`` per source label and ``summary.csv`` into ``out_dir``."""
-    annotations = list(read_annotations(spec, pull_dir))
+    annotations = [
+        a
+        for a in read_annotations(spec, pull_dir)
+        if not any(fnmatch(a.image_path.relative_to(pull_dir).as_posix(), p) for p in spec.exclude)
+    ]
     if not annotations:
         raise ValueError(f"{spec.name}: no annotations under {pull_dir / spec.root}")
 

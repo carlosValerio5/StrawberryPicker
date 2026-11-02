@@ -139,3 +139,23 @@ def test_build_contact_sheets_fails_loudly_when_nothing_is_found(tmp_path, make_
         build_contact_sheets(spec, tmp_path, tmp_path / "reports")
 
     assert not (tmp_path / "reports").exists()
+
+
+def test_build_contact_sheets_skips_excluded_files(tmp_path, make_image, make_spec) -> None:
+    pull = tmp_path / "pull"
+    make_image(pull / "Ripe" / "keep.png", seed=1)
+    make_image(pull / "Ripe" / "aug" / "copy.png", seed=2)
+    make_image(pull / "Unripe" / "aug" / "only_copy.png", seed=3)
+    spec = make_spec(
+        labels={
+            "Ripe": {"maturity": "ripe"},
+            "Ripe/aug": {"maturity": "ripe"},
+            "Unripe/aug": "drop",
+        },
+        exclude=["*/aug/*"],
+    )
+
+    summary = build_contact_sheets(spec, pull, tmp_path / "out", tile_px=8, columns=1)
+
+    assert summary.source_label.tolist() == ["Ripe"]
+    assert summary.annotations.tolist() == [1]
