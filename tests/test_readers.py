@@ -46,14 +46,18 @@ def test_yolo_images_labels_split_dirs(tmp_path, make_image) -> None:
     labels.mkdir(parents=True)
     (labels / "x.txt").write_text("0 0.5 0.5 1.0 1.0\n")
 
-    assert list(read_yolo(tmp_path, ["ripe"])) == [Annotation(image, "ripe", (0.0, 0.0, 100.0, 100.0))]
+    assert list(read_yolo(tmp_path, ["ripe"])) == [
+        Annotation(image, "ripe", (0.0, 0.0, 100.0, 100.0))
+    ]
 
 
 def test_yolo_polygon_rows_become_bounding_boxes(tmp_path, make_image) -> None:
     image = make_image(tmp_path / "p.png", size=(100, 100))
     (tmp_path / "p.txt").write_text("0 0.1 0.2 0.5 0.2 0.3 0.6\n")
 
-    assert list(read_yolo(tmp_path, ["ripe"])) == [Annotation(image, "ripe", (10.0, 20.0, 50.0, 60.0))]
+    assert list(read_yolo(tmp_path, ["ripe"])) == [
+        Annotation(image, "ripe", (10.0, 20.0, 50.0, 60.0))
+    ]
 
 
 def test_yolo_skips_unlabeled_and_empty(tmp_path, make_image) -> None:
@@ -114,4 +118,21 @@ def test_read_annotations_dispatches_on_format_and_root(tmp_path, make_image, ma
     yolo_spec = make_spec(format="yolo", class_names=["Ripe"], root="yolo")
     assert list(read_annotations(yolo_spec, tmp_path)) == [
         Annotation(yolo_image, "Ripe", (0.0, 0.0, 10.0, 10.0))
+    ]
+
+
+def test_read_annotations_dispatches_coco(tmp_path, make_image, make_spec) -> None:
+    image = make_image(tmp_path / "coco" / "f.jpg")
+    (tmp_path / "coco" / "ann.json").write_text(
+        json.dumps(
+            {
+                "categories": [{"id": 1, "name": "Ripe"}],
+                "images": [{"id": 1, "file_name": "f.jpg"}],
+                "annotations": [{"id": 1, "image_id": 1, "category_id": 1, "bbox": [0, 0, 8, 8]}],
+            }
+        )
+    )
+    spec = make_spec(format="coco", root="coco")
+    assert list(read_annotations(spec, tmp_path)) == [
+        Annotation(image, "Ripe", (0.0, 0.0, 8.0, 8.0))
     ]

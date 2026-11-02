@@ -9,6 +9,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from fnmatch import fnmatch
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -75,7 +76,7 @@ def build_silver(
     images_dir.mkdir(parents=True)
 
     rows: list[dict[str, Any]] = []
-    rejected: list[dict[str, str]] = []
+    rejected: list[tuple[str, str, str, str]] = []  # REJECTED_COLUMNS
     hashes: dict[str, tuple[int, ...]] = {}  # bronze_path → dihedral hashes
     stored: dict[str, str] = {}  # bronze_path → image_id
     first_seen: dict[str, str] = {}  # image_id → bronze_path
@@ -88,27 +89,24 @@ def build_silver(
             logger.warning("source %s has no bronze pull — skipped", spec.name)
             continue
 
-        by_image: dict[Any, list[Annotation]] = {}
+        by_image: dict[Path, list[Annotation]] = {}
         for annotation in read_annotations(spec, pull):
             by_image.setdefault(annotation.image_path, []).append(annotation)
 
         for image_path in sorted(by_image):
             bronze_path = image_path.relative_to(bronze).as_posix()
 
-            def reject(reason: str, detail: str = "", _path: str = bronze_path) -> None:
-                rejected.append(
-                    {"source_name": spec.name, "bronze_path": _path, "reason": reason, "detail": detail}
-                )
-
             if any(fnmatch(image_path.relative_to(pull).as_posix(), p) for p in spec.exclude):
-                reject("excluded")
+                rejected.append((spec.name, bronze_path, "excluded", ""))
                 continue
 
             kept = []
             for annotation in by_image[image_path]:
                 mapping = spec.map_label(annotation.source_label)
                 if mapping is None:
-                    reject("label_dropped", annotation.source_label)
+                    rejected.append(
+                        (spec.name, bronze_path, "label_dropped", annotation.source_label)
+                    )
                 else:
                     kept.append((annotation, mapping))
             if not kept:
@@ -118,15 +116,16 @@ def build_silver(
                 with Image.open(image_path) as raw:
                     image = ImageOps.exif_transpose(raw).convert("RGB")
             except (OSError, ValueError, Image.DecompressionBombError) as exc:
-                reject("corrupt", type(exc).__name__)
+                rejected.append((spec.name, bronze_path, "corrupt", type(exc).__name__))
                 continue
             if min(image.size) < min_side_px:
-                reject("too_small", f"{image.width}x{image.height}")
+                size = f"{image.width}x{image.height}"
+                rejected.append((spec.name, bronze_path, "too_small", size))
                 continue
 
             image_id = compute_image_id(image)
             if image_id in first_seen:
-                reject("duplicate", first_seen[image_id])
+                rejected.append((spec.name, bronze_path, "duplicate", first_seen[image_id]))
                 continue
             first_seen[image_id] = bronze_path
             stored[bronze_path] = image_id
@@ -160,10 +159,7 @@ def build_silver(
     dropped_ids = {stored[path] for path in near_duplicates}
     for path, canonical in near_duplicates.items():
         (images_dir / f"{stored[path]}.jpg").unlink()
-        source_name = path.split("/", 1)[0]
-        rejected.append(
-            {"source_name": source_name, "bronze_path": path, "reason": "near_duplicate", "detail": canonical}
-        )
+        rejected.append((path.split("/", 1)[0], path, "near_duplicate", canonical))
 
     manifest = pd.DataFrame(
         [r for r in rows if r["image_id"] not in dropped_ids], columns=list(SILVER_COLUMNS)

@@ -1,4 +1,4 @@
-.PHONY: setup setup-ml lint format test check
+.PHONY: setup setup-ml lint format test check coverage silver
 
 setup:            ## Install core + dev dependencies
 	uv sync
@@ -17,3 +17,9 @@ test:
 	uv run pytest
 
 check: lint test  ## What CI and agents run before committing
+
+coverage:         ## Tests with coverage (fails under 80 %)
+	uv run pytest --cov
+
+silver:           ## Rebuild data/silver from enabled bronze sources
+	uv run python scripts/build_silver.py

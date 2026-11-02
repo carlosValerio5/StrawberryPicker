@@ -1,11 +1,14 @@
 # Data pipeline settings. Paths are resolved by strawberry_picker.paths — not set here.
+# Sources and their label mappings live in configs/sources.yaml.
 taxonomy_version: v0
 
 silver:
   jpeg_quality: 95
-  min_side_px: 64          # smaller images are rejected
+  min_side_px: 32                  # smaller images are rejected (Riseholme crops average ~63 px)
+  near_duplicate_max_distance: 6   # dHash bits (of 64); catches flips/rotations/re-encodes
 
 gold:
-  split_ratios: {train: 0.7, val: 0.15, test: 0.15}
-  group_column: group_id   # keep a group in one split to avoid leakage
+  split_ratios: {train: 0.7, val: 0.15, test: 0.15}   # applied per group_id, never per row
   seed: 42
+  crop_padding: 0.15               # context around each fruit, as a fraction of its longest side
+  jpeg_quality: 95

@@ -4,8 +4,9 @@ import io
 
 from PIL import Image
 
-from conftest import pattern_image
 from strawberry_picker.data.dedup import dhash, dihedral_hashes, find_near_duplicates, hamming
+
+from conftest import pattern_image
 
 
 def _jpeg_roundtrip(image: Image.Image, quality: int = 70) -> Image.Image:

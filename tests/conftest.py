@@ -21,7 +21,10 @@ def make_image() -> Callable[..., Path]:
     """Write a synthetic image to ``path`` (format from the suffix) and return the path."""
 
     def _make(
-        path: Path, seed: int = 0, size: tuple[int, int] = (64, 48), image: Image.Image | None = None
+        path: Path,
+        seed: int = 0,
+        size: tuple[int, int] = (64, 48),
+        image: Image.Image | None = None,
     ) -> Path:
         path.parent.mkdir(parents=True, exist_ok=True)
         (image or pattern_image(seed, size)).save(path)

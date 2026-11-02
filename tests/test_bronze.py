@@ -21,7 +21,9 @@ def test_latest_pull_none_when_missing(tmp_data_dir) -> None:
     assert latest_pull("toy_source") is None
 
 
-def test_ingest_directory_copies_and_writes_source_card(tmp_data_dir, tmp_path, make_image, make_spec) -> None:
+def test_ingest_directory_copies_and_writes_source_card(
+    tmp_data_dir, tmp_path, make_image, make_spec
+) -> None:
     artifact = tmp_path / "download"
     make_image(artifact / "Ripe" / "a.png")
     spec = make_spec(doi="10.1234/toy", citation="Doe et al. 2026")
@@ -31,7 +33,13 @@ def test_ingest_directory_copies_and_writes_source_card(tmp_data_dir, tmp_path, 
     assert pull == tmp_data_dir / "bronze" / "toy_source" / "2026-11-02"
     assert (pull / "Ripe" / "a.png").is_file()
     card = (pull / "SOURCE.md").read_text()
-    for expected in ("Toy source", "https://example.org/toy", "CC-BY-4.0", "10.1234/toy", "Doe et al."):
+    for expected in (
+        "Toy source",
+        "https://example.org/toy",
+        "CC-BY-4.0",
+        "10.1234/toy",
+        "Doe et al.",
+    ):
         assert expected in card
     assert (artifact / "Ripe" / "a.png").is_file()  # original left untouched
 
@@ -65,3 +73,16 @@ def test_source_card_flags_non_commercial(make_spec) -> None:
     assert "non-commercial" in card.lower()
     assert "2026-11-02" in card
     assert "toy.zip" in card
+
+
+def test_ingest_unpacks_tar(tmp_data_dir, tmp_path, make_image, make_spec) -> None:
+    import tarfile
+
+    image = make_image(tmp_path / "src" / "Ripe" / "a.png")
+    archive = tmp_path / "toy.tar.gz"
+    with tarfile.open(archive, "w:gz") as tf:
+        tf.add(image, "data/Ripe/a.png")
+
+    pull = ingest(make_spec(), archive, date(2026, 11, 2))
+
+    assert (pull / "data" / "Ripe" / "a.png").is_file()

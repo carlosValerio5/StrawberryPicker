@@ -8,9 +8,10 @@ import pyarrow.parquet as pq
 import pytest
 from PIL import Image
 
-from conftest import pattern_image
 from strawberry_picker.data.silver import REJECTED_COLUMNS, build_silver, compute_image_id
 from strawberry_picker.schema import SILVER_COLUMNS
+
+from conftest import pattern_image
 
 NOW = datetime(2026, 11, 2, 12, 0, tzinfo=UTC)
 BUILD_KWARGS = {"min_side_px": 32, "jpeg_quality": 95, "near_duplicate_max_distance": 6, "now": NOW}
@@ -43,7 +44,9 @@ def bronze_sources(tmp_data_dir, make_image, make_spec):
     make_image(pull / "Ripe" / "a.png", seed=1)
     make_image(pull / "Unripe" / "b.png", seed=2)
     make_image(pull / "Unripe" / "b_copy.png", seed=2)  # identical pixels → exact duplicate
-    make_image(pull / "Ripe" / "c_rot.png", image=pattern_image(1).transpose(Image.Transpose.ROTATE_90))
+    make_image(
+        pull / "Ripe" / "c_rot.png", image=pattern_image(1).transpose(Image.Transpose.ROTATE_90)
+    )
     make_image(pull / "Occluded" / "d.png", seed=4)  # mapped to "drop"
     make_image(pull / "Ripe" / "tiny.png", seed=5, size=(10, 10))
     (pull / "Ripe" / "broken.jpg").write_bytes(b"not a jpeg")
@@ -190,3 +193,22 @@ def test_build_silver_with_no_pulls_writes_empty_manifest(tmp_data_dir, make_spe
     assert result.manifest.empty
     assert tuple(result.manifest.columns) == SILVER_COLUMNS
     assert (tmp_data_dir / "silver" / "manifest.parquet").is_file()
+
+
+def test_parent_dir_grouping_keeps_sessions_together(tmp_data_dir, make_image, make_spec) -> None:
+    pull = tmp_data_dir / "bronze" / "toy_source" / "2026-11-02"
+    make_image(pull / "Ripe" / "session1" / "a.png", seed=1)
+    make_image(pull / "Ripe" / "session1" / "b.png", seed=2)
+    make_image(pull / "Ripe" / "session2" / "c.png", seed=3)
+    spec = make_spec(
+        group_by="parent_dir",
+        labels={"Ripe/session1": {"maturity": "ripe"}, "Ripe/session2": {"maturity": "ripe"}},
+    )
+
+    manifest = build_silver({"toy_source": spec}, **BUILD_KWARGS).manifest
+
+    assert sorted(manifest.group_id) == [
+        "toy_source/Ripe/session1",
+        "toy_source/Ripe/session1",
+        "toy_source/Ripe/session2",
+    ]

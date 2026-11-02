@@ -9,9 +9,10 @@ import pandas as pd
 import pytest
 from PIL import Image
 
-from conftest import pattern_image
 from strawberry_picker.data.gold import SPLITS, assign_splits, build_gold, crop_box
 from strawberry_picker.schema import GOLD_COLUMNS, SILVER_COLUMNS
+
+from conftest import pattern_image
 
 ALL_TRAIN = {"train": 1.0, "val": 0.0, "test": 0.0}
 
@@ -43,7 +44,9 @@ def _write_silver(data_dir: Path, rows: list[dict[str, Any]]) -> None:
     for seed, image_id in enumerate(dict.fromkeys(r["image_id"] for r in rows)):
         row = next(r for r in rows if r["image_id"] == image_id)
         pattern_image(seed, (row["width"], row["height"])).save(images / f"{image_id}.jpg")
-    pd.DataFrame(rows, columns=list(SILVER_COLUMNS)).to_parquet(data_dir / "silver" / "manifest.parquet")
+    pd.DataFrame(rows, columns=list(SILVER_COLUMNS)).to_parquet(
+        data_dir / "silver" / "manifest.parquet"
+    )
 
 
 @pytest.fixture
@@ -54,7 +57,13 @@ def silver_rows(tmp_data_dir) -> list[dict[str, Any]]:
         _row("img2", bbox=[50.0, 20.0, 90.0, 60.0]),
         _row("img3", maturity=None, defects=["mold"], source_label="Gray Mold"),
         _row("img4", maturity="unripe", needs_review=True),
-        _row("img5", maturity="overripe", defects=["rot"], license="CC-BY-NC-4.0", commercial_use=False),
+        _row(
+            "img5",
+            maturity="overripe",
+            defects=["rot"],
+            license="CC-BY-NC-4.0",
+            commercial_use=False,
+        ),
     ]
     _write_silver(tmp_data_dir, rows)
     return rows
@@ -235,3 +244,12 @@ def test_build_requires_rows(tmp_data_dir) -> None:
 def test_build_requires_silver(tmp_data_dir) -> None:
     with pytest.raises(FileNotFoundError):
         build_gold("maturity_cls", "0.1", ratios=ALL_TRAIN, seed=42)
+
+
+def test_failed_build_leaves_nothing_behind(silver_rows, tmp_data_dir) -> None:
+    (tmp_data_dir / "silver" / "images" / "img2.jpg").unlink()  # silver is inconsistent
+
+    with pytest.raises(FileNotFoundError):
+        build_gold("maturity_cls", "0.1", ratios=ALL_TRAIN, seed=42)
+
+    assert list((tmp_data_dir / "gold").iterdir()) == []  # no release, no .partial

@@ -38,7 +38,12 @@ def read_imagefolder(root: Path) -> Iterator[Annotation]:
 
 
 def yolo_to_xyxy(cx: float, cy: float, w: float, h: float, *, width: int, height: int) -> BBox:
-    return ((cx - w / 2) * width, (cy - h / 2) * height, (cx + w / 2) * width, (cy + h / 2) * height)
+    return (
+        (cx - w / 2) * width,
+        (cy - h / 2) * height,
+        (cx + w / 2) * width,
+        (cy + h / 2) * height,
+    )
 
 
 def _yolo_label_path(image_path: Path) -> Path | None:
@@ -85,7 +90,9 @@ def read_coco(root: Path, pattern: str = "**/*.json") -> Iterator[Annotation]:
         images = {i["id"]: annotation_file.parent / i["file_name"] for i in data["images"]}
         for ann in sorted(data["annotations"], key=lambda a: a["id"]):
             x, y, w, h = (float(v) for v in ann["bbox"])
-            yield Annotation(images[ann["image_id"]], categories[ann["category_id"]], (x, y, x + w, y + h))
+            yield Annotation(
+                images[ann["image_id"]], categories[ann["category_id"]], (x, y, x + w, y + h)
+            )
 
 
 def read_annotations(spec: SourceSpec, pull_dir: Path) -> Iterator[Annotation]:

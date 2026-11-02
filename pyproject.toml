@@ -5,7 +5,7 @@ description = "Strawberry maturity and quality assessment from images using open
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "numpy>=1.26",
+    "numpy>=2.0", # np.bitwise_count (near-duplicate detection)
     "pandas>=2.2",
     "pyarrow>=16.0",
     "pillow>=10.3",
@@ -27,6 +27,7 @@ dev = [
     "pytest>=8.0",
     "ruff>=0.6",
     "ipykernel>=6.29",
+    "pytest-cov>=7.1.0",
 ]
 
 [build-system]
@@ -43,6 +44,16 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM"]
 
+[tool.ruff.lint.isort]
+known-local-folder = ["conftest"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.coverage.run]
+source = ["src/strawberry_picker"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
