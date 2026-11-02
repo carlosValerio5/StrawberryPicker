@@ -3,7 +3,7 @@
 Look at a strawberry and tell how **ripe** it is and what its **quality** is, using
 open-source vision models.
 
-- **Maturity:** `unripe` · `turning` · `ripe` · `overripe`
+- **Maturity:** `unripe` · `ripe` · `overripe`
 - **Quality:** visible defects (bruise, mold, rot, …), giving a `premium` / `standard` / `reject` grade
 
 The classes are defined in [docs/data-contract.md](docs/data-contract.md), and the

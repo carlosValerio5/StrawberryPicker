@@ -3,7 +3,7 @@
 ## Pipeline
 
 ```
-image ──► [1] detect strawberries ──► per-fruit crops ──► [2] maturity head  ──► unripe/turning/ripe/overripe
+image ──► [1] detect strawberries ──► per-fruit crops ──► [2] maturity head  ──► unripe/ripe/overripe
                                                       └─► [3] defect head    ──► multi-label defects ──► grade
 ```
 
