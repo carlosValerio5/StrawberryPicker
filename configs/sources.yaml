@@ -121,14 +121,11 @@ sources:
       Extends Afzaal, U., Bhattarai, B., Pandeya, Y. R., Lee, J. (2021). An Instance
       Segmentation Model for Strawberry Diseases Based on Mask R-CNN. Sensors.
     format: coco
-    root: Strawberry-segmentation-traditional-augmentation
+    # Pull 2026-11-02.2 = Mendeley's whole-dataset ZIP (its top folder name is truncated).
+    root: Strawberry Disease Detection Dataset with Hybrid D/Strawberry-segmentation-traditional-augmentation
     # The hybrid copy holds the same originals plus unmarked DALL·E 3 images (train only).
     # Never read it. The traditional copy still contains geometric/photometric augmentations.
-    exclude:
-      - "Strawberry-segmentation-hybrid-augmentation/**"
-      # Pull 2026-11-02 has train's COCO file but not its 3,672 images (Mendeley lists only
-      # 1,000 files per folder). Drop this line once a pull with the train images lands.
-      - "Strawberry-segmentation-traditional-augmentation/train/**"
+    exclude: ["*Strawberry-segmentation-hybrid-augmentation/*"]
     labels:
       Gray Mold: {defects: [mold], needs_review: true} # about half the sampled boxes are infected flowers/calyces, not fruit
       Anthracnose Fruit Rot: {defects: [rot]}
