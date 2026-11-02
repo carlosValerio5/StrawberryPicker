@@ -1,0 +1,70 @@
+# ---------------------------------------------------------------------------
+# Data — medallion layers are ignored; only their READMEs are tracked.
+# ---------------------------------------------------------------------------
+/data/**
+!/data/*/
+!/data/README.md
+!/data/*/README.md
+
+# Model artifacts — weights, checkpoints, exports
+/models/**
+!/models/README.md
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.engine
+*.tflite
+*.h5
+
+# Generated reports (keep the folder, ignore outputs)
+/reports/**
+!/reports/README.md
+!/reports/figures/
+!/reports/figures/.gitkeep
+
+# Experiment tracking
+mlruns/
+mlartifacts/
+wandb/
+lightning_logs/
+runs/
+outputs/
+multirun/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+kaggle.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.python-env/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Agent-local state (shared agent config is tracked)
+.claude/settings.local.json
+graphify-out/

@@ -1,0 +1,11 @@
+# Data pipeline settings. Paths are resolved by strawberry_picker.paths — not set here.
+taxonomy_version: v0
+
+silver:
+  jpeg_quality: 95
+  min_side_px: 64          # smaller images are rejected
+
+gold:
+  split_ratios: {train: 0.7, val: 0.15, test: 0.15}
+  group_column: group_id   # keep a group in one split to avoid leakage
+  seed: 42

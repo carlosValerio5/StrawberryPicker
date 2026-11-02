@@ -1,0 +1,17 @@
+# Baseline: frozen DINOv2 backbone + linear head for maturity classification.
+task: maturity_cls
+dataset: maturity_cls_v0.1          # folder under data/gold/
+
+model:
+  backbone: facebook/dinov2-small   # Apache-2.0
+  freeze_backbone: true
+  image_size: 224
+
+train:
+  epochs: 20
+  batch_size: 32
+  lr: 1.0e-3
+  seed: 42
+
+eval:
+  primary_metric: macro_f1
