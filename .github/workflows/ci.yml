@@ -1,0 +1,50 @@
+# Lint, format, tests + coverage gate, and a guard against committed data/weights.
+# Mirrors `make check` + `make coverage`. Needs no real data and no GPU (AGENTS.md rule 9).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: check (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      - name: Install (core + dev, from uv.lock)
+        run: uv sync --locked
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format
+        run: uv run ruff format --check .
+
+      - name: Tests + coverage (fails under 80 %)
+        run: uv run pytest --cov
+
+      - name: No data or weights committed (AGENTS.md rule 1)
+        run: |
+          if git ls-files | grep -Ei '\.(jpe?g|png|bmp|tiff?|webp|heic|parquet|npy|npz|pt|pth|ckpt|safetensors|onnx|zip|tar|gz)$'; then
+            echo "::error::Data or weight files are tracked. They belong under git-ignored data/, models/ or reports/."
+            exit 1
+          fi

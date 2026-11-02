@@ -55,6 +55,11 @@ make format     # ruff format + autofix
 
 Use `uv run <cmd>` to run anything inside the project env.
 
+CI (`.github/workflows/ci.yml`) runs the same checks on every pull request with Python 3.11
+and 3.12: ruff lint and format, `pytest --cov` (fails under 80 %), and a guard that fails if
+any image, parquet, archive or weight file is tracked. It installs core + dev only, so tests
+that need the `ml` extra must `pytest.importorskip` it.
+
 ## Hard rules
 
 1. **Never commit data or weights.** `data/**`, `models/**`, and `reports/**` are
