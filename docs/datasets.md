@@ -13,10 +13,10 @@ own augmented copies.
 |---|---|---|---|---|---|
 | [`riseholme_2021`](https://github.com/ctyeong/Riseholme-2021) | unripe 2,406 · ripe 462 · anomalous 153 (+ 499 occluded, dropped) | single-fruit crops, ~63×66 px | UK polytunnels, robot camera | **not stated** | enabled |
 | [`yurdakul_2026`](https://www.kaggle.com/datasets/mahyeks/multi-class-strawberry-ripeness-detection-dataset) | unripe 776 · ripe 273 · semi-ripe 120 (review) | 566 images, 1,169 boxes | Türkiye greenhouses | not stated (paper CC BY 4.0) | needs verify |
-| [`strawberry_ds_2023`](https://data.mendeley.com/datasets/z6dtfdpzz8/1) | 6 stages → unripe / ripe | 247 images, multi-fruit | Egypt greenhouse, 3840×2160 | CC BY 4.0 | needs verify |
+| [`strawberry_ds_2023`](https://data.mendeley.com/datasets/z6dtfdpzz8/1) | 6 stages → unripe / ripe | 247 images, multi-fruit | Egypt greenhouse, 3840×2160 | CC BY 4.0 | **enabled** (audited) |
 | [`kamat_2025`](https://data.mendeley.com/datasets/zysvgmxcyz/1) | unripe 114+238 · ripe 189 · rotten 170 | ~711 strawberry samples | India, field, **pastel backgrounds** | CC BY 4.0 | needs verify |
 | [`fresh_rotten_fruits_2022`](https://data.mendeley.com/datasets/bdd69gyhv8) | no defects 200 · rot 200 | 512×512 | shops and fields, DSLR | CC BY 4.0 | needs verify |
-| [`strawberry_disease_2025`](https://data.mendeley.com/datasets/k2ptxmfjhj/1) | mold, rot, healthy (fruit classes only) | 2,459 originals in 8 classes | field, COCO polygons, **1,018 DALL·E images** | **CC BY-NC 4.0** | needs verify |
+| [`strawberry_disease_2025`](https://data.mendeley.com/datasets/k2ptxmfjhj/1) | mold, rot, healthy (fruit classes only) | 2,459 originals in 8 classes | field, COCO polygons, **1,018 DALL·E images** | **CC BY-NC 4.0** | **enabled**, test + valid only (audited) |
 
 "Needs verify" means the label mapping is written, but the source stays `enabled: false`
 until someone downloads it and confirms the class order and file layout. A wrong YOLO
@@ -40,10 +40,34 @@ file listing stops at 1,000 files per folder, so counts shown as "1,000" are low
 |---|---|---|---|
 | `riseholme_2021` | GitHub ZIP of `main` | ~27 MB | The repo has no license file |
 | `strawberry_ds_2023` | `Strawberry (2).zip` | 293 MB | A single archive. Class order is checked after unpacking |
-| `strawberry_disease_2025` | the `traditional-augmentation` folder plus `README.txt` | ~147 MB | Two copies of the same originals. The *hybrid* copy adds DALL·E 3 images, which are only in train and **aren't marked**, so it's excluded entirely. The traditional copy still has geometric and photometric augmentations. Filenames are Roboflow exports (`<id>_jpg.rf.<hash>.jpg`) |
+| `strawberry_disease_2025` | the `traditional-augmentation` folder plus `README.txt` | ~400 MB (the listing showed ~147 MB because train was cut off at 1,000 files; its COCO file lists **3,672** images) | Two copies of the same originals. The *hybrid* copy adds DALL·E 3 images, which are only in train and **aren't marked**, so it's excluded entirely. The traditional copy still has geometric and photometric augmentations. Filenames are Roboflow exports (`<id>_jpg.rf.<hash>.jpg`) |
 | `kamat_2025` | the `images/` and `labels/` folders | ~2.1 GB | 758+ full-resolution JPEGs (~2.8 MB each), plus a bundled **YOLOv5 code checkout** (excluded). **No dataset `data.yaml`**, so the class order has to be confirmed on contact sheets |
 | `fresh_rotten_fruits_2022` | `Original Image.zip` | 2.79 GB | Holds all 8 fruits; we use about 400 strawberry images. `Augmented Image.zip` (803 MB) is skipped |
 | `yurdakul_2026` | the Kaggle dataset ZIP | see Kaggle | Needs a Kaggle login, so the owner downloads it by hand |
+
+## Audit findings (2026-11-02)
+
+Each source's labels were checked against its own files and against contact sheets
+(`scripts/contact_sheets.py`, ~50 random crops per label, judged with the
+[rubric](labeling/rubric.md)). Pulls checked: `riseholme_2021`, `strawberry_ds_2023`,
+and `strawberry_disease_2025` (test and valid only), all from 2026-11-02.
+
+| # | Finding | Evidence | Action |
+|---|---|---|---|
+| 1 | **Strawberry-DS class order was wrong in our registry.** The export's `data.yaml` is alphabetical (`Early-Turning, Green, Late-Turning, Red, Turning, White`), not the paper's stage order. Enabled as written, every `Red` box would have become `unripe` and every `White` box `ripe` | `data.yaml`. Under the old order the "Red" sheet showed white berries and the "Turning" sheet showed red ones | `class_names` fixed and source enabled |
+| 2 | **Near-duplicate removal merged different berries.** The 64-bit dHash matched 71 Riseholme crops, and 10 of those pairs were ripe↔unripe. On ~60 px blurry crops, different fruit hashes almost the same. Distances on a 256-bit hash were 47–94 bits; real copies sit at ≤ 13 | `near_dup_pairs` review. All 19 matches left after the fix are true flips or hue-shifted copies | dHash widened to 16×16, threshold 24/256 (`configs/data.yaml`). Regression test added |
+| 3 | **Disease COCO names differ from the paper:** `Asymptomatic Strawberry` (not "Healthy"), `Powderly Mildew Fruit/Leaf` (sic), plus an unused `fruit` category | `_annotations.coco.json` | Registry renamed |
+| 4 | **"Asymptomatic Strawberry" is healthy fruit**, mostly green or white | contact sheet | `needs_review` removed |
+| 5 | **About half of the sampled "Gray Mold" boxes are infected flowers or dried calyces**, not fruit | contact sheet | `needs_review: true`. It stays out of gold until reviewed |
+| 6 | **The disease "traditional" copy has augmented images in every split**: rotations with black corners, hue jitter. Hue jitter matters for ripeness. This source has no maturity labels, but its defect crops carry shifted colors | contact sheets | Noted. Dihedral dHash only catches 90° rotations and flips |
+| 7 | **About 6–12 % of sampled Strawberry-DS boxes show no visible fruit** (soil, leaf) | `Red`, `Late-Turning` sheets | Left for the label-error audit (ADR 0005 D) |
+| 8 | **Riseholme has no borderline fruit.** `Unripe` is white or green, `Ripe` is fully red. It can't teach the model where the ¾ line falls; Strawberry-DS `Turning`/`Late-Turning` and our own photos have to | contact sheets | None. This is about coverage, not an error |
+| 9 | **Disease `train/` images are missing from our pull.** Mendeley's file listing stops at 1,000 files per folder | COCO lists 3,672 train images. 999 were listed | `train/**` excluded until a full pull. Needs the whole-dataset ZIP |
+
+Silver after the audit: **5,038 fruit rows from 3,556 images**.
+- Maturity rows that can go to gold: **unripe 3,065, ripe 686, overripe 0**.
+- Defect rows that can go to gold: **rot 176, mold 173**. The rest are healthy or unassessed.
+- 325 rows are `needs_review`.
 
 ## Expected class balance after mapping (approximate)
 
