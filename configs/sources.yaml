@@ -78,9 +78,9 @@ sources:
     commercial_use: true
     citation: Kamat et al. (2025). Data in Brief.
     format: yolo
-    class_names: [unripe, partially ripe, ripe, rotten] # VERIFY
+    class_names: [unripe, partially ripe, ripe, rotten] # VERIFY: no data.yaml is shipped; check with contact sheets
     unmapped: drop # avocado classes, if they share the export
-    exclude: [] # TODO: add the augmented-copy pattern once the archive is inspected
+    exclude: ["yolov5/**"] # the deposit bundles a full YOLOv5 checkout (code, .git, demo images)
     labels:
       unripe: {maturity: unripe}
       partially ripe: {maturity: unripe}
@@ -116,7 +116,10 @@ sources:
       Extends Afzaal, U., Bhattarai, B., Pandeya, Y. R., Lee, J. (2021). An Instance
       Segmentation Model for Strawberry Diseases Based on Mask R-CNN. Sensors.
     format: coco
-    exclude: [] # TODO: synthetic (DALL·E 3) images — never train on them
+    root: Strawberry-segmentation-traditional-augmentation
+    # The hybrid copy holds the same originals plus unmarked DALL·E 3 images (train only).
+    # Never read it. The traditional copy still contains geometric/photometric augmentations.
+    exclude: ["Strawberry-segmentation-hybrid-augmentation/**"]
     labels:
       Gray Mold: {defects: [mold]}
       Anthracnose Fruit Rot: {defects: [rot]}
