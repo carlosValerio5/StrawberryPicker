@@ -31,6 +31,20 @@ class order would silently mislabel every box.
 - **Roboflow Universe:** uneven quality and heavy duplication. Only add it after
   near-duplicate removal.
 
+## Download inventory (checked 2026-11-02 from the repositories' metadata APIs)
+
+Sizes come from the GitHub and Mendeley APIs. Nothing has been downloaded yet. Mendeley's
+file listing stops at 1,000 files per folder, so counts shown as "1,000" are lower bounds.
+
+| Source | What to download | Size | Findings from the file listing |
+|---|---|---|---|
+| `riseholme_2021` | GitHub ZIP of `main` | ~27 MB | The repo has no license file |
+| `strawberry_ds_2023` | `Strawberry (2).zip` | 293 MB | A single archive. Class order is checked after unpacking |
+| `strawberry_disease_2025` | the `traditional-augmentation` folder plus `README.txt` | ~147 MB | Two copies of the same originals. The *hybrid* copy adds DALL·E 3 images, which are only in train and **aren't marked**, so it's excluded entirely. The traditional copy still has geometric and photometric augmentations. Filenames are Roboflow exports (`<id>_jpg.rf.<hash>.jpg`) |
+| `kamat_2025` | the `images/` and `labels/` folders | ~2.1 GB | 758+ full-resolution JPEGs (~2.8 MB each), plus a bundled **YOLOv5 code checkout** (excluded). **No dataset `data.yaml`**, so the class order has to be confirmed on contact sheets |
+| `fresh_rotten_fruits_2022` | `Original Image.zip` | 2.79 GB | Holds all 8 fruits; we use about 400 strawberry images. `Augmented Image.zip` (803 MB) is skipped |
+| `yurdakul_2026` | the Kaggle dataset ZIP | see Kaggle | Needs a Kaggle login, so the owner downloads it by hand |
+
 ## Expected class balance after mapping (approximate)
 
 | unripe | ripe | overripe | rot / mold | bruise, deformed, pest, mechanical |
