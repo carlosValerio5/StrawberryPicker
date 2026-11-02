@@ -15,12 +15,15 @@ def main() -> None:
     parser.add_argument("source", help="source name from configs/sources.yaml")
     parser.add_argument("artifact", type=Path, help="downloaded .zip/.tar archive or folder")
     parser.add_argument("--date", type=date.fromisoformat, default=date.today())
+    parser.add_argument(
+        "--revision", type=int, help="second+ pull on the same day: lands in <date>.<n>"
+    )
     args = parser.parse_args()
 
     sources = load_sources()
     if args.source not in sources:
         parser.error(f"unknown source {args.source!r}; known: {', '.join(sorted(sources))}")
-    pull = ingest(sources[args.source], args.artifact, args.date)
+    pull = ingest(sources[args.source], args.artifact, args.date, args.revision)
     print(f"ingested into {pull}")
 
 

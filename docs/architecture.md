@@ -28,6 +28,7 @@ Check licenses before adopting. Code and weights can have different licenses.
 | Detector | YOLO (Ultralytics) | **AGPL-3.0** | Great tooling, but the copyleft terms need an ADR first |
 | Auto-labeling | OWLv2 / Grounding DINO | Apache-2.0 | Bootstrap boxes from text prompts, then fix by hand |
 | Masks | SAM 2 | Apache-2.0 | Precise fruit masks for surface-area color ratios |
+| Label-error audit | Confident learning, own code in `audit/label_issues.py` | — | `cleanlab` is **AGPL-3.0**, so not a dependency; the method is ~30 lines (Northcutt et al. 2021) |
 
 ## Suggested milestones
 

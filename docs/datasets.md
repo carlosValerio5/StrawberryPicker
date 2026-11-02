@@ -14,8 +14,8 @@ own augmented copies.
 | [`riseholme_2021`](https://github.com/ctyeong/Riseholme-2021) | unripe 2,406 · ripe 462 · anomalous 153 (+ 499 occluded, dropped) | single-fruit crops, ~63×66 px | UK polytunnels, robot camera | **not stated** | enabled |
 | [`yurdakul_2026`](https://www.kaggle.com/datasets/mahyeks/multi-class-strawberry-ripeness-detection-dataset) | unripe 776 · ripe 273 · semi-ripe 120 (review) | 566 images, 1,169 boxes | Türkiye greenhouses | not stated (paper CC BY 4.0) | needs verify |
 | [`strawberry_ds_2023`](https://data.mendeley.com/datasets/z6dtfdpzz8/1) | 6 stages → unripe / ripe | 247 images, multi-fruit | Egypt greenhouse, 3840×2160 | CC BY 4.0 | **enabled** (audited) |
-| [`kamat_2025`](https://data.mendeley.com/datasets/zysvgmxcyz/1) | unripe 114+238 · ripe 189 · rotten 170 | ~711 strawberry samples | India, field, **pastel backgrounds** | CC BY 4.0 | needs verify |
-| [`fresh_rotten_fruits_2022`](https://data.mendeley.com/datasets/bdd69gyhv8) | no defects 200 · rot 200 | 512×512 | shops and fields, DSLR | CC BY 4.0 | needs verify |
+| [`kamat_2025`](https://data.mendeley.com/datasets/zysvgmxcyz/1) | unripe 114+238 · ripe 189 · rotten 170 | ~711 strawberry samples | India, field, **pastel backgrounds** | CC BY 4.0 | **enabled** (audited; 43 % of images missing from the deposit) |
+| [`fresh_rotten_fruits_2022`](https://data.mendeley.com/datasets/bdd69gyhv8) | no defects 200 · rot 200 | 512×512 | shops and fields, DSLR | CC BY 4.0 | **enabled** (audited) |
 | [`strawberry_disease_2025`](https://data.mendeley.com/datasets/k2ptxmfjhj/1) | mold, rot, healthy (fruit classes only) | 2,459 originals in 8 classes | field, COCO polygons, **1,018 DALL·E images** | **CC BY-NC 4.0** | **enabled**, test + valid only (audited) |
 
 "Needs verify" means the label mapping is written, but the source stays `enabled: false`
@@ -64,10 +64,56 @@ and `strawberry_disease_2025` (test and valid only), all from 2026-11-02.
 | 8 | **Riseholme has no borderline fruit.** `Unripe` is white or green, `Ripe` is fully red. It can't teach the model where the ¾ line falls; Strawberry-DS `Turning`/`Late-Turning` and our own photos have to | contact sheets | None. This is about coverage, not an error |
 | 9 | **Disease `train/` images are missing from our pull.** Mendeley's file listing stops at 1,000 files per folder | COCO lists 3,672 train images. 999 were listed | `train/**` excluded until a full pull. Needs the whole-dataset ZIP |
 
-Silver after the audit: **5,038 fruit rows from 3,556 images**.
+Silver after part 1 of the audit (3 sources): **5,038 fruit rows from 3,556 images**.
 - Maturity rows that can go to gold: **unripe 3,065, ripe 686, overripe 0**.
 - Defect rows that can go to gold: **rot 176, mold 173**. The rest are healthy or unassessed.
 - 325 rows are `needs_review`.
+
+### Part 2: Kamat, Fresh/Rotten, the full disease set, and statistics (2026-11-02)
+
+Datasheets for every source are in [`docs/datasheets/`](datasheets/).
+
+| # | Finding | Evidence | Action |
+|---|---|---|---|
+| 10 | **Kamat ships no class list and uses 8 indices.** 0–3 are strawberry, as named. 4 and 7 were checked as avocado | contact sheets; box counts match the paper | 8 names registered, avocados dropped |
+| 11 | **About 1 in 4 sampled Kamat "unripe" boxes is a flower or bud** | contact sheet | `unripe` → `needs_review` |
+| 12 | **Kamat "rotten" is mostly white fuzzy mold** | contact sheet | mapped to `overripe` + `mold`, `needs_review` |
+| 13 | **574 of Kamat's 1,332 label files have no image** in the deposit | file listing | none; 342 fruit rows are usable |
+| 14 | **Fresh/Rotten labels are per image and about 1 in 4 images is a pile of berries.** "Fresh" means not rotten; some are deformed | contact sheets | Fresh kept as `defects: []` (caveat noted); Rotten → `overripe` + `rot`, `needs_review` |
+| 15 | **Disease `train/` is now complete** (pull `2026-11-02.2`, the whole-dataset ZIP). 319 augmented copies were removed | silver rejections | `exclude` for train removed |
+| 16 | **Confident learning misses boxes that aren't fruit.** It flagged 1.3 % of Strawberry-DS, while the contact sheets showed 6–12 % empty boxes | audit report vs contact sheets | **ADR [0006](decisions/0006-random-sample-error-rate.md) (proposed)**: estimate error rates from a random sample |
+
+**Statistical audit** (`scripts/dataset_audit.py`, DINOv2-small embeddings, linear
+probes, group-aware CV; full report in `reports/dataset-audit/report.md`):
+
+- **Sources are almost perfectly identifiable:** balanced accuracy 0.979 against a
+  chance level of 0.200. Any shortcut a source offers (backgrounds, camera, crop size)
+  is easy to learn, so evaluation has to be on held-out sources and on our own phone set.
+- **Leave-one-source-out maturity macro-F1:**
+  - in-distribution: 0.952
+  - held-out Riseholme: 0.807 (−0.145, just under the 0.15 line in ADR 0005 §E)
+  - held-out Strawberry-DS: 0.873
+  - held-out Kamat: 0.876
+
+  Adding Kamat raised the held-out Strawberry-DS score from 0.792 to 0.873.
+- **The learning curve is flat:** macro-F1 0.940 with 10 % of the training data and
+  0.940 with all of it. More of these datasets won't help; *different* data will (our
+  phone photos and overripe fruit).
+- **Confident learning flagged:**
+  - Riseholme: 26 of 2,724
+  - Strawberry-DS: 13 of 1,027
+  - Kamat: 5 of 145
+  - Disease: 1 of 4,519
+  - Fresh/Rotten: 0 of 199
+
+  Most Riseholme flags are pink berries labelled `Unripe`, which are `ripe` under the
+  USDA rubric. Lists are in `reports/dataset-audit/review/`. Random samples for ADR 0006
+  are in `reports/dataset-audit/random_sample/`.
+
+**Silver now (5 sources):** 9,781 fruit rows from 5,672 images.
+- Gold-eligible maturity: **unripe 3,144, ripe 752, overripe 0**.
+- 287 overripe candidates (Fresh/Rotten 199, Kamat 88) are waiting for review.
+- Gold-eligible defects: **rot 723, mold 683**.
 
 ## Expected class balance after mapping (approximate)
 

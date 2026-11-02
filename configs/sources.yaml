@@ -74,7 +74,9 @@ sources:
     notes: 247 greenhouse images (Egypt), several fruits per image, expert-checked labels.
 
   kamat_2025:
-    enabled: false # VERIFY: class order, and how augmented copies are named/stored
+    # Verified 2026-11-02 (pull 2026-11-02) on contact sheets: 0-3 strawberry as named,
+    # 4 and 7 avocado (5, 6 sit between them, also avocado). 574 of 1,332 label files
+    # have no image in the deposit.
     title: Comprehensive dataset on ripening stages of strawberries and avocados
     url: https://data.mendeley.com/datasets/zysvgmxcyz/1
     doi: 10.17632/zysvgmxcyz.1
@@ -82,31 +84,35 @@ sources:
     commercial_use: true
     citation: Kamat et al. (2025). Data in Brief.
     format: yolo
-    class_names: [unripe, partially ripe, ripe, rotten] # VERIFY: no data.yaml is shipped; check with contact sheets
-    unmapped: drop # avocado classes, if they share the export
-    exclude: ["yolov5/**"] # the deposit bundles a full YOLOv5 checkout (code, .git, demo images)
+    root: Comprehensive Dataset on Ripening Stages of Strawberries and Avocados From Unripe to Rotten
+    # No data.yaml is shipped. 0-3 match the paper's strawberry counts (114/238/189/170).
+    class_names: [unripe, partially ripe, ripe, rotten, avocado_4, avocado_5, avocado_6, avocado_7]
+    unmapped: drop # the avocado classes
+    exclude: ["*/yolov5/*"] # the deposit bundles a full YOLOv5 checkout (code, .git, demo images)
     labels:
-      unripe: {maturity: unripe}
-      partially ripe: {maturity: unripe}
+      unripe: {maturity: unripe, needs_review: true} # ~1 in 4 sampled boxes is a flower or bud
+      partially ripe: {maturity: unripe} # 2 of 40 sampled were rotten avocados; label audit
       ripe: {maturity: ripe}
-      rotten: {maturity: overripe, defects: [rot], needs_review: true} # ADR 0003
+      rotten: {maturity: overripe, defects: [mold], needs_review: true} # mostly white fuzzy mold (rubric: mold); ADR 0003
     notes: >-
       Field photos (India) resized to 1024², backgrounds replaced with pastel colours —
       watch for background shortcuts. ~1,333 originals across both fruits; the rest are
       augmented copies, which near-duplicate removal must catch.
 
   fresh_rotten_fruits_2022:
-    enabled: false # VERIFY: folder names for the two strawberry classes
+    # Verified 2026-11-02 (pull 2026-11-02, sha256 matches Mendeley) on contact sheets.
+    # Image-level labels: ~1 in 4 sampled images is a pile of many berries.
     title: Fresh and Rotten Fruits Dataset for Machine-Based Evaluation of Fruit Quality
     url: https://data.mendeley.com/datasets/bdd69gyhv8
     doi: 10.17632/bdd69gyhv8.1
     license: CC-BY-4.0
     commercial_use: true
     format: imagefolder
+    root: Original Image # `Original Image.zip`; Augmented Image.zip is not used
     unmapped: drop # the seven other fruits
     labels:
-      FreshStrawberry: {defects: []} # VERIFY folder name
-      RottenStrawberry: {defects: [rot]} # VERIFY folder name
+      FreshStrawberry: {defects: []} # means "not rotten": a few sampled berries are deformed
+      RottenStrawberry: {maturity: overripe, defects: [rot], needs_review: true} # shrivelled/dried, past peak
     notes: 200 fresh + 200 rotten strawberry originals (512²); augmented copies also included.
 
   strawberry_disease_2025:
@@ -121,14 +127,11 @@ sources:
       Extends Afzaal, U., Bhattarai, B., Pandeya, Y. R., Lee, J. (2021). An Instance
       Segmentation Model for Strawberry Diseases Based on Mask R-CNN. Sensors.
     format: coco
-    root: Strawberry-segmentation-traditional-augmentation
+    # Pull 2026-11-02.2 = Mendeley's whole-dataset ZIP (its top folder name is truncated).
+    root: Strawberry Disease Detection Dataset with Hybrid D/Strawberry-segmentation-traditional-augmentation
     # The hybrid copy holds the same originals plus unmarked DALL·E 3 images (train only).
     # Never read it. The traditional copy still contains geometric/photometric augmentations.
-    exclude:
-      - "Strawberry-segmentation-hybrid-augmentation/**"
-      # Pull 2026-11-02 has train's COCO file but not its 3,672 images (Mendeley lists only
-      # 1,000 files per folder). Drop this line once a pull with the train images lands.
-      - "Strawberry-segmentation-traditional-augmentation/train/**"
+    exclude: ["*Strawberry-segmentation-hybrid-augmentation/*"]
     labels:
       Gray Mold: {defects: [mold], needs_review: true} # about half the sampled boxes are infected flowers/calyces, not fruit
       Anthracnose Fruit Rot: {defects: [rot]}

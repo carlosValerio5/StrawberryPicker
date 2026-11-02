@@ -26,21 +26,24 @@ docs/
   target-domain.md         where the model runs (hand-held phone photos); judge datasets against it
   architecture.md          pipeline + candidate open-source models
   data-contract.md         label taxonomy + manifest schemas  ← read before touching labels
-  datasets.md              public dataset catalog, mappings, transformations and why
+  datasets.md              public dataset catalog, mappings, transformations, audit findings
+  datasheets/              one datasheet per source (what we verified, what the audit found)
   labeling/                rubric.md (USDA-anchored label rules), test-set protocol, capture procedures
   decisions/               ADRs — one file per significant decision
   tdd/                     TDD evidence reports
 models/                    trained weights/checkpoints — git-ignored
 notebooks/                 exploration only; naming rule in notebooks/README.md
 reports/                   generated metrics/figures — git-ignored
-scripts/                   thin CLIs: ingest_source.py, contact_sheets.py, build_silver.py, build_gold.py
+scripts/                   thin CLIs: ingest_source.py, contact_sheets.py, build_silver.py, build_gold.py,
+                           dataset_audit.py
 src/strawberry_picker/
   paths.py                 ONLY place that resolves filesystem locations
   schema.py                taxonomy enums + SilverRecord (code mirror of data-contract.md)
   config.py                YAML config loading
   data/                    bronze.py (ingest) → silver.py (clean) → gold.py (split/export)
     sources.py             registry parsing; readers.py (imagefolder/YOLO/COCO); dedup.py (dHash)
-  audit/                   dataset audits on raw bronze (contact_sheets.py) → reports/dataset-audit/
+  audit/                   dataset audits → reports/dataset-audit/: contact_sheets.py (raw bronze),
+                           embeddings.py, label_issues.py (confident learning), probes.py, report.py
   models/                  model definitions / backbones / heads
   evaluation/              metrics, confusion matrices, reports
   inference/               predict on new images
