@@ -59,7 +59,7 @@ def build_silver(
     *,
     min_side_px: int = 32,
     jpeg_quality: int = 95,
-    near_duplicate_max_distance: int = 6,
+    near_duplicate_max_distance: int = 24,
     now: datetime | None = None,
 ) -> SilverBuild:
     """Rebuild ``data/silver`` from the latest bronze pull of every enabled source.
