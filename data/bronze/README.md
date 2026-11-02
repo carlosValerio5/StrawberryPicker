@@ -15,6 +15,17 @@ bronze/
         └── ...
 ```
 
+## Adding a pull
+
+Register the source in `configs/sources.yaml` first. Then:
+
+```bash
+uv run python scripts/ingest_source.py <source_name> path/to/download.zip
+```
+
+That unpacks or copies the download into `<source_name>/<today>/` and writes
+`SOURCE.md` from the registry. It refuses to overwrite an existing pull.
+
 ## Rules
 
 - One folder per source, one sub-folder per pull. A re-download goes in a new date folder.

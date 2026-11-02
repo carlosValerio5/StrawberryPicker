@@ -4,6 +4,7 @@ import pytest
 
 from strawberry_picker.paths import PROJECT_ROOT
 from strawberry_picker.schema import (
+    GOLD_COLUMNS,
     SILVER_COLUMNS,
     Defect,
     Grade,
@@ -42,3 +43,18 @@ def test_maturity_is_ordinal() -> None:
 def test_contract_doc_mentions_every_code_value(value: str) -> None:
     """schema.py and docs/data-contract.md must not drift apart."""
     assert f"`{value}`" in CONTRACT
+
+
+def test_silver_columns_carry_lineage_and_review_state() -> None:
+    for column in ("source_label", "commercial_use", "needs_review"):
+        assert column in SILVER_COLUMNS
+
+
+@pytest.mark.parametrize("value", GOLD_COLUMNS[len(SILVER_COLUMNS) :])
+def test_contract_doc_mentions_gold_columns(value: str) -> None:
+    assert GOLD_COLUMNS[: len(SILVER_COLUMNS)] == SILVER_COLUMNS
+    assert f"`{value}`" in CONTRACT
+
+
+def test_gold_adds_split_and_crop_columns() -> None:
+    assert GOLD_COLUMNS[len(SILVER_COLUMNS) :] == ("split", "crop_id", "crop_path")

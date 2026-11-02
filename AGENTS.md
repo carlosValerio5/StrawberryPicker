@@ -19,21 +19,26 @@ README.md                  human quick-start
 pyproject.toml             deps (uv), ruff + pytest config
 Makefile                   setup / lint / format / test / check
 configs/                   YAML configs: data + one file per training task
+  sources.yaml             bronze source registry + label mappings (validated on load)
 data/                      MEDALLION DATA — git-ignored except READMEs
   bronze/ silver/ gold/    raw → cleaned → model-ready (read each README)
 docs/
   architecture.md          pipeline + candidate open-source models
   data-contract.md         label taxonomy + manifest schemas  ← read before touching labels
+  datasets.md              public dataset catalog, mappings, transformations and why
+  labeling/                manual data-collection / review procedures
   decisions/               ADRs — one file per significant decision
+  tdd/                     TDD evidence reports
 models/                    trained weights/checkpoints — git-ignored
 notebooks/                 exploration only; naming rule in notebooks/README.md
 reports/                   generated metrics/figures — git-ignored
-scripts/                   thin CLI wrappers around src/ (no logic here)
+scripts/                   thin CLIs: ingest_source.py, build_silver.py, build_gold.py
 src/strawberry_picker/
   paths.py                 ONLY place that resolves filesystem locations
   schema.py                taxonomy enums + SilverRecord (code mirror of data-contract.md)
   config.py                YAML config loading
   data/                    bronze.py (ingest) → silver.py (clean) → gold.py (split/export)
+    sources.py             registry parsing; readers.py (imagefolder/YOLO/COCO); dedup.py (dHash)
   models/                  model definitions / backbones / heads
   evaluation/              metrics, confusion matrices, reports
   inference/               predict on new images
