@@ -108,4 +108,9 @@ def test_repo_registry_is_valid() -> None:
 def test_repo_registry_only_enables_verified_sources() -> None:
     # Each entry was checked against its downloaded files and contact sheets (docs/datasets.md).
     enabled = {name for name, spec in load_sources().items() if spec.enabled}
-    assert enabled == {"riseholme_2021", "strawberry_ds_2023", "strawberry_disease_2025"}
+    assert enabled == {
+        "kamat_2025",
+        "riseholme_2021",
+        "strawberry_ds_2023",
+        "strawberry_disease_2025",
+    }

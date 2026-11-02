@@ -113,3 +113,22 @@ def test_write_report_and_review_sheets(tmp_path, make_image) -> None:
     assert a_sheet.position.tolist() == list(range(1, len(a_sheet) + 1))
     assert (tmp_path / "out" / "review" / "a.jpg").exists()
     assert set(review) <= {"a", "b", "c"}
+
+
+def test_random_sample_sheets_are_seeded_and_cover_every_source(tmp_path, make_image) -> None:
+    from strawberry_picker.audit.report import write_random_sample_sheets
+
+    frame = audit_frame(_manifest())
+    bronze = tmp_path / "bronze"
+    for path in frame.bronze_path:
+        make_image(bronze / path, size=(40, 40))
+
+    first = write_random_sample_sheets(frame, bronze, tmp_path / "out", n=10, seed=0, tile_px=8)
+    second = write_random_sample_sheets(frame, bronze, tmp_path / "again", n=10, seed=0, tile_px=8)
+
+    assert sorted(first) == ["a", "b", "c"]
+    sample = pd.read_csv(first["a"])
+    assert list(sample.columns) == ["position", "crop_id", "bronze_path", "given", "verdict"]
+    assert len(sample) == 10 and sample.crop_id.is_unique
+    assert sample.equals(pd.read_csv(second["a"]))
+    assert (tmp_path / "out" / "random_sample" / "a.jpg").exists()
