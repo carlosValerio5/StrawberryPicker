@@ -15,10 +15,9 @@ TAXONOMY_VERSION = "v0"
 
 
 class Maturity(StrEnum):
-    """Ordinal: declaration order is unripe < turning < ripe < overripe."""
+    """Ordinal: declaration order is unripe < ripe < overripe."""
 
     UNRIPE = "unripe"
-    TURNING = "turning"
     RIPE = "ripe"
     OVERRIPE = "overripe"
 

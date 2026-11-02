@@ -34,7 +34,7 @@ def test_unknown_defect_rejected() -> None:
 
 
 def test_maturity_is_ordinal() -> None:
-    assert [m.ordinal for m in Maturity] == [0, 1, 2, 3]
+    assert [m.ordinal for m in Maturity] == [0, 1, 2]
     assert Maturity.UNRIPE.ordinal < Maturity.RIPE.ordinal < Maturity.OVERRIPE.ordinal
 
 

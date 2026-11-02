@@ -10,13 +10,13 @@ Code mirror: `src/strawberry_picker/schema.py`. **Keep both in sync.**
 
 | Value | Meaning (visual cue) |
 |-------|----------------------|
-| `unripe`   | Mostly green or white, no red coloring |
-| `turning`  | Partly red (roughly 10–75 % of the surface), white/pink areas remain |
+| `unripe`   | Not ready to pick: green, white, or only partly red (< ~75 % of the surface) |
 | `ripe`     | ≥ ~75 % evenly red, firm, glossy. Ready to pick |
 | `overripe` | Dark red/purplish, dull, soft or leaking. Past peak |
 
-The order matters (`unripe < turning < ripe < overripe`), so ordinal-aware losses
-and metrics are allowed.
+The order matters (`unripe < ripe < overripe`), so ordinal-aware losses and
+metrics are allowed. Partly-red "turning" fruit counts as `unripe`
+(ADR [0002](decisions/0002-three-maturity-classes.md)).
 
 ## 2. Quality
 
