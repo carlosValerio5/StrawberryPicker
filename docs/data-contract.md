@@ -47,20 +47,26 @@ One row per unique image.
 
 | Column | Type | Notes |
 |--------|------|-------|
-| `image_id`     | string    | first 16 hex chars of sha256 over image size + EXIF-corrected RGB pixels |
-| `source_name`  | string    | bronze source folder name |
-| `bronze_path`  | string    | path relative to `data/bronze/` |
-| `license`      | string    | SPDX id or free text, copied from `SOURCE.md` |
-| `width`        | int       | pixels |
-| `height`       | int       | pixels |
-| `maturity`     | string?   | one of §1, or null if unknown |
-| `defects`      | list[str] | subset of §2a. Empty means none. Null means not assessed |
-| `bbox`         | list[float]? | `[x_min, y_min, x_max, y_max]` in pixels, if the image has one fruit annotated |
-| `group_id`     | string    | split-leakage group (session/plant/source). Defaults to `source_name` |
-| `ingested_at`  | timestamp | UTC, ISO-8601 |
+| `image_id`       | string    | first 16 hex chars of sha256 over image size + EXIF-corrected RGB pixels |
+| `source_name`    | string    | bronze source folder name, as registered in `configs/sources.yaml` |
+| `bronze_path`    | string    | path relative to `data/bronze/` |
+| `source_label`   | string    | the label exactly as the source wrote it, before mapping (for audits) |
+| `license`        | string    | SPDX id or free text, from the source registry |
+| `commercial_use` | bool      | false if the source license forbids commercial use |
+| `width`          | int       | pixels, after EXIF orientation |
+| `height`         | int       | pixels, after EXIF orientation |
+| `maturity`       | string?   | one of §1, or null if the source doesn't label ripeness |
+| `defects`        | list[str]? | subset of §2a. Empty means none found. Null means not assessed |
+| `needs_review`   | bool      | the source label maps ambiguously. Gold excludes the row until a human confirms it |
+| `bbox`           | list[float]? | `[x_min, y_min, x_max, y_max]` in pixels. Null means the whole image is one fruit |
+| `group_id`       | string    | split-leakage group, set by the source's `group_by`: `<source>/<image_id>` (default), `<source>`, or `<source>/<folder>` |
+| `ingested_at`    | timestamp | UTC time of the silver build |
 
 Multi-fruit images with per-fruit boxes are stored as one row per fruit, sharing
-the same `image_id`.
+the same `image_id`. Images dropped from bronze are listed in
+`data/silver/rejected.parquet` with a reason: `excluded`, `label_dropped`,
+`corrupt`, `too_small`, `duplicate` (identical pixels), or `near_duplicate`
+(perceptual-hash match, e.g. a flipped or re-encoded copy).
 
 ## 4. Gold manifest — `data/gold/<version>/manifest.parquet`
 
@@ -68,4 +74,8 @@ The silver columns plus:
 
 | Column | Type | Notes |
 |--------|------|-------|
-| `split` | string | `train` / `val` / `test` |
+| `split`     | string | `train` / `val` / `test`, assigned per `group_id` |
+| `crop_id`   | string | `<image_id>_<n>`, where `n` is the fruit's position within its image in silver |
+| `crop_path` | string | crop file relative to the dataset folder |
+
+Rows with `needs_review = true`, or without the task's label, are not in gold.

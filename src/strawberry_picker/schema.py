@@ -61,15 +61,18 @@ class SilverRecord:
     image_id: str
     source_name: str
     bronze_path: str
+    source_label: str  # label as the source wrote it, before mapping
     license: str
+    commercial_use: bool
     width: int
     height: int
     maturity: Maturity | None
     defects: tuple[Defect, ...] | None  # () = no defects, None = not assessed
+    needs_review: bool  # mapping is ambiguous; excluded from gold until a human confirms it
     bbox: tuple[float, float, float, float] | None
     group_id: str
     ingested_at: datetime
 
 
 SILVER_COLUMNS: tuple[str, ...] = tuple(f.name for f in fields(SilverRecord))
-GOLD_COLUMNS: tuple[str, ...] = (*SILVER_COLUMNS, "split")
+GOLD_COLUMNS: tuple[str, ...] = (*SILVER_COLUMNS, "split", "crop_id", "crop_path")

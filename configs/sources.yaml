@@ -1,0 +1,129 @@
+# Bronze source registry — parsed by strawberry_picker.data.sources (validated on load).
+#
+# One entry per source. `labels` maps each label *exactly as the source writes it*
+# (folder path, YOLO class name, or COCO category) to our taxonomy (docs/data-contract.md):
+#   {maturity: unripe|ripe|overripe|null, defects: [..]|null, needs_review: bool}  or  drop
+#   - defects: []   → assessed, no defects found
+#   - defects: null → this source doesn't assess defects (omit the key)
+#   - needs_review  → ambiguous mapping; row stays in silver but is kept out of gold
+# A label that isn't listed fails the silver build, unless `unmapped: drop`.
+#
+# `enabled: false` until someone has downloaded the source and checked its layout and
+# class order against what is written here. Rationale for every mapping: docs/datasets.md.
+
+sources:
+  riseholme_2021:
+    title: Riseholme Strawberry Classification 2021
+    url: https://github.com/ctyeong/Riseholme-2021
+    license: unknown (no license file in the repository; ask the authors before redistributing)
+    commercial_use: false
+    citation: >-
+      Choi, T., Would, O., Salazar-Gomez, A., Cielniak, G. (2022). Self-supervised
+      Representation Learning for Reliable Robotic Monitoring of Fruit Anomalies. ICRA 2022.
+    format: imagefolder
+    root: Riseholme-2021-main/Data # GitHub "Download ZIP" of the main branch
+    labels:
+      Normal/Ripe: {maturity: ripe, defects: []}
+      Normal/Unripe: {maturity: unripe, defects: []}
+      Normal/Occluded: drop # healthy but no ripeness label
+      Anomalous: {needs_review: true} # health issue of unknown type; label the defect by hand
+    notes: >-
+      Single-fruit crops (~63×66 px) from a robot-mounted camera in UK polytunnels.
+      Neighbouring frames can show the same fruit; near-duplicate removal catches most.
+
+  yurdakul_2026:
+    enabled: false # VERIFY: class order in the Kaggle data.yaml, image/label layout
+    title: Multi-Class Strawberry Ripeness Detection Dataset
+    url: https://www.kaggle.com/datasets/mahyeks/multi-class-strawberry-ripeness-detection-dataset
+    doi: 10.21227/dmwm-sc17
+    license: unknown (article is CC-BY-4.0; dataset license not stated)
+    commercial_use: false
+    citation: >-
+      Yurdakul, M., Baştuğ, Gök, Taşdemir (2026). A Novel Public Dataset for Strawberry
+      Ripeness Detection and Comparative Evaluation of YOLO-Based Models. Food Science & Nutrition.
+    format: yolo
+    class_names: [fully-ripe, semi-ripe, unripe] # VERIFY against data.yaml
+    labels:
+      unripe: {maturity: unripe} # < 10 % red
+      fully-ripe: {maturity: ripe} # > 90 % red
+      semi-ripe: {maturity: unripe, needs_review: true} # 10–90 % red straddles our 75 % line
+    notes: 566 greenhouse images (Türkiye), 1,169 boxes.
+
+  strawberry_ds_2023:
+    enabled: false # VERIFY: class order of the YOLO export
+    title: "Strawberry-DS: annotated strawberry fruit images at various developmental stages"
+    url: https://data.mendeley.com/datasets/z6dtfdpzz8/1
+    doi: 10.17632/z6dtfdpzz8.1
+    license: CC-BY-4.0
+    commercial_use: true
+    citation: >-
+      Elhariri, E., El-Bendary, N., Saleh, S. M. (2023). Strawberry-DS. Data in Brief.
+    format: yolo
+    class_names: [Green, White, Early-Turning, Turning, Late-Turning, Red] # VERIFY
+    labels:
+      Green: {maturity: unripe}
+      White: {maturity: unripe}
+      Early-Turning: {maturity: unripe}
+      Turning: {maturity: unripe}
+      Late-Turning: {maturity: ripe, needs_review: true} # may fall either side of 75 % red
+      Red: {maturity: ripe}
+    notes: 247 greenhouse images (Egypt), several fruits per image, expert-checked labels.
+
+  kamat_2025:
+    enabled: false # VERIFY: class order, and how augmented copies are named/stored
+    title: Comprehensive dataset on ripening stages of strawberries and avocados
+    url: https://data.mendeley.com/datasets/zysvgmxcyz/1
+    doi: 10.17632/zysvgmxcyz.1
+    license: CC-BY-4.0
+    commercial_use: true
+    citation: Kamat et al. (2025). Data in Brief.
+    format: yolo
+    class_names: [unripe, partially ripe, ripe, rotten] # VERIFY
+    unmapped: drop # avocado classes, if they share the export
+    exclude: [] # TODO: add the augmented-copy pattern once the archive is inspected
+    labels:
+      unripe: {maturity: unripe}
+      partially ripe: {maturity: unripe}
+      ripe: {maturity: ripe}
+      rotten: {maturity: overripe, defects: [rot], needs_review: true} # ADR 0003
+    notes: >-
+      Field photos (India) resized to 1024², backgrounds replaced with pastel colours —
+      watch for background shortcuts. ~1,333 originals across both fruits; the rest are
+      augmented copies, which near-duplicate removal must catch.
+
+  fresh_rotten_fruits_2022:
+    enabled: false # VERIFY: folder names for the two strawberry classes
+    title: Fresh and Rotten Fruits Dataset for Machine-Based Evaluation of Fruit Quality
+    url: https://data.mendeley.com/datasets/bdd69gyhv8
+    doi: 10.17632/bdd69gyhv8.1
+    license: CC-BY-4.0
+    commercial_use: true
+    format: imagefolder
+    unmapped: drop # the seven other fruits
+    labels:
+      FreshStrawberry: {defects: []} # VERIFY folder name
+      RottenStrawberry: {defects: [rot]} # VERIFY folder name
+    notes: 200 fresh + 200 rotten strawberry originals (512²); augmented copies also included.
+
+  strawberry_disease_2025:
+    enabled: false # VERIFY: category names and how DALL·E images are marked
+    title: Strawberry Disease Detection Dataset with Hybrid Data Augmentation
+    url: https://data.mendeley.com/datasets/k2ptxmfjhj/1
+    doi: 10.17632/k2ptxmfjhj.1
+    license: CC-BY-NC-4.0
+    commercial_use: false
+    citation: >-
+      Extends Afzaal, U., Bhattarai, B., Pandeya, Y. R., Lee, J. (2021). An Instance
+      Segmentation Model for Strawberry Diseases Based on Mask R-CNN. Sensors.
+    format: coco
+    exclude: [] # TODO: synthetic (DALL·E 3) images — never train on them
+    labels:
+      Gray Mold: {defects: [mold]}
+      Anthracnose Fruit Rot: {defects: [rot]}
+      Powdery Mildew Fruit: {defects: [mold]}
+      Healthy Strawberry: {defects: [], needs_review: true} # VERIFY it means fruit, not plant
+      Angular Leafspot: drop
+      Leaf Spot: drop
+      Powdery Mildew Leaf: drop
+      Blossom Blight: drop
+    notes: 2,459 original images; leaf and flower classes are out of scope.
