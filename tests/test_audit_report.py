@@ -52,7 +52,7 @@ def _manifest() -> pd.DataFrame:
 
 def _embeddings(frame: pd.DataFrame, flip_row: int) -> np.ndarray:
     rng = np.random.default_rng(0)
-    positive = frame.label.isin(["ripe", "rot"]).to_numpy()
+    positive = frame.label.isin(["ripe", "rot"]).to_numpy().copy()
     positive[flip_row] = not positive[flip_row]  # the image says the opposite of its label
     features = rng.normal(size=(len(frame), 6))
     features[:, 0] += np.where(positive, 3.0, -3.0)
