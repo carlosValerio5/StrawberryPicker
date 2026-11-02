@@ -68,7 +68,9 @@ uv run python scripts/build_gold.py maturity_cls 0.1
 
 To enable a "needs verify" source:
 1. Ingest it.
-2. Compare its `data.yaml`, folders or COCO categories against `class_names` and `labels`.
+2. Compare its `data.yaml`, folders or COCO categories against `class_names` and `labels`,
+   then run `uv run python scripts/contact_sheets.py <source>` and check every sheet
+   against the [rubric](labeling/rubric.md).
 3. Fill in the `exclude` globs for augmented or synthetic files.
 4. Set `enabled: true`.
 5. Rebuild silver and read `rejected.parquet` before cutting gold.

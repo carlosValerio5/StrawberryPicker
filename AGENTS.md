@@ -23,22 +23,24 @@ configs/                   YAML configs: data + one file per training task
 data/                      MEDALLION DATA — git-ignored except READMEs
   bronze/ silver/ gold/    raw → cleaned → model-ready (read each README)
 docs/
+  target-domain.md         where the model runs (hand-held phone photos); judge datasets against it
   architecture.md          pipeline + candidate open-source models
   data-contract.md         label taxonomy + manifest schemas  ← read before touching labels
   datasets.md              public dataset catalog, mappings, transformations and why
-  labeling/                manual data-collection / review procedures
+  labeling/                rubric.md (USDA-anchored label rules), test-set protocol, capture procedures
   decisions/               ADRs — one file per significant decision
   tdd/                     TDD evidence reports
 models/                    trained weights/checkpoints — git-ignored
 notebooks/                 exploration only; naming rule in notebooks/README.md
 reports/                   generated metrics/figures — git-ignored
-scripts/                   thin CLIs: ingest_source.py, build_silver.py, build_gold.py
+scripts/                   thin CLIs: ingest_source.py, contact_sheets.py, build_silver.py, build_gold.py
 src/strawberry_picker/
   paths.py                 ONLY place that resolves filesystem locations
   schema.py                taxonomy enums + SilverRecord (code mirror of data-contract.md)
   config.py                YAML config loading
   data/                    bronze.py (ingest) → silver.py (clean) → gold.py (split/export)
     sources.py             registry parsing; readers.py (imagefolder/YOLO/COCO); dedup.py (dHash)
+  audit/                   dataset audits on raw bronze (contact_sheets.py) → reports/dataset-audit/
   models/                  model definitions / backbones / heads
   evaluation/              metrics, confusion matrices, reports
   inference/               predict on new images
@@ -66,14 +68,16 @@ Use `uv run <cmd>` to run anything inside the project env.
 4. **Released gold versions are immutable.** To change one, cut a new version.
 5. **Resolve paths through `strawberry_picker.paths`.** Never hardcode `data/...`
    or absolute paths. The data dir can live outside the repo (`STRAWBERRY_DATA_DIR`).
-6. **The taxonomy lives in two places that must stay in sync:**
+6. **Label meaning comes from `docs/labeling/rubric.md`** (USDA-anchored). Pass/fail bars
+   are fixed in ADR 0005 *before* results are seen. Never tune against the locked phone test set.
+7. **The taxonomy lives in two places that must stay in sync:**
    `docs/data-contract.md` (for humans) and `src/strawberry_picker/schema.py` (for code).
    Change both in the same commit, and add an ADR if classes change.
-7. **Check model licenses** before adding a dependency or pretrained weights, and
+8. **Check model licenses** before adding a dependency or pretrained weights, and
    record it in `docs/architecture.md`. Avoid AGPL/non-commercial weights unless an
    ADR accepts the tradeoff.
-8. **Secrets** go in `.env` (git-ignored). Add new variable names to `.env.example`.
-9. **Tests must run without real data or a GPU.** Use tiny synthetic images built
+9. **Secrets** go in `.env` (git-ignored). Add new variable names to `.env.example`.
+10. **Tests must run without real data or a GPU.** Use tiny synthetic images built
    in fixtures (see `tests/conftest.py`).
 
 ## Conventions

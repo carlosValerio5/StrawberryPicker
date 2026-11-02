@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 
 import pandas as pd
+import pytest
 from PIL import Image
 
 from strawberry_picker.audit.contact_sheets import (
@@ -77,8 +78,11 @@ def test_render_sheet_survives_unreadable_images(tmp_path, make_image) -> None:
 
 def test_label_summary_reports_mapping_without_raising(tmp_path, make_image, make_spec) -> None:
     spec = make_spec(
-        labels={"Ripe": {"maturity": "ripe", "defects": []}, "Leaf": "drop", "Odd": {
-            "maturity": "unripe", "needs_review": True}}
+        labels={
+            "Ripe": {"maturity": "ripe", "defects": []},
+            "Leaf": "drop",
+            "Odd": {"maturity": "unripe", "needs_review": True},
+        }
     )
     image = make_image(tmp_path / "x.png")
     annotations = [
@@ -126,3 +130,12 @@ def test_build_contact_sheets_writes_one_sheet_per_label(tmp_path, make_image, m
     assert written.loc["Normal/Ripe", "sheet"] == "Normal_Ripe.jpg"
     assert list(summary.columns) == ["source_label", "annotations", "images", "mapped_to", "sheet"]
     assert sorted(p.relative_to(pull) for p in pull.rglob("*")) == before  # bronze untouched
+
+
+def test_build_contact_sheets_fails_loudly_when_nothing_is_found(tmp_path, make_spec) -> None:
+    spec = make_spec(root="wrong/root")
+
+    with pytest.raises(ValueError, match="no annotations"):
+        build_contact_sheets(spec, tmp_path, tmp_path / "reports")
+
+    assert not (tmp_path / "reports").exists()
