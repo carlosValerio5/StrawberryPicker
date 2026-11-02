@@ -16,6 +16,7 @@ from strawberry_picker.audit.embeddings import dinov2_embedder, embed_crops
 from strawberry_picker.audit.report import (
     audit_frame,
     run_audit,
+    write_random_sample_sheets,
     write_report,
     write_review_sheets,
 )
@@ -29,6 +30,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default="facebook/dinov2-small")
     parser.add_argument("--top-k", type=int, default=100, help="suspects per source to review")
+    parser.add_argument("--sample", type=int, default=50, help="random crops per source")
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
@@ -59,9 +61,12 @@ def main() -> None:
 
     result = run_audit(frame, embeddings, seed=args.seed)
     report = write_report(result, out)
-    sheets = write_review_sheets(result, frame, layer_dir(Layer.BRONZE), out, top_k=args.top_k)
+    bronze = layer_dir(Layer.BRONZE)
+    sheets = write_review_sheets(result, frame, bronze, out, top_k=args.top_k)
+    samples = write_random_sample_sheets(frame, bronze, out, n=args.sample, seed=args.seed)
     print(report.read_text())
     print("review sheets:", ", ".join(str(p) for p in sheets.values()))
+    print("random samples:", ", ".join(str(p) for p in samples.values()))
 
 
 if __name__ == "__main__":

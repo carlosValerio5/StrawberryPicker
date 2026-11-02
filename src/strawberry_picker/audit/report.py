@@ -196,3 +196,43 @@ def write_review_sheets(
         )
         written[str(source)] = review_dir / f"{source}.csv"
     return written
+
+
+RANDOM_SAMPLE_COLUMNS = ("position", "crop_id", "bronze_path", "given", "verdict")
+
+
+def write_random_sample_sheets(
+    frame: pd.DataFrame,
+    bronze_dir: Path,
+    out_dir: Path,
+    *,
+    n: int = 50,
+    seed: int = 0,
+    tile_px: int = 128,
+    columns: int = 10,
+) -> dict[str, Path]:
+    """A seeded random sample of ``n`` crops per source, for an unbiased error-rate estimate.
+
+    Confident learning only finds rows that look like *another* class. A box of bare soil
+    labelled ``ripe`` looks like no class at all and is rarely flagged, so the error rate
+    of a source is estimated from a random sample instead (ADR 0006).
+    """
+    sample_dir = out_dir / "random_sample"
+    sample_dir.mkdir(parents=True, exist_ok=True)
+    written = {}
+    for source, rows in frame.groupby("source_name"):
+        picked = rows.sample(n=min(n, len(rows)), random_state=seed).reset_index(drop=True)
+        sheet = picked.assign(
+            given=picked.label, position=np.arange(1, len(picked) + 1), verdict=""
+        )
+        sheet[list(RANDOM_SAMPLE_COLUMNS)].to_csv(sample_dir / f"{source}.csv", index=False)
+        annotations = [
+            Annotation(bronze_dir / path, label, tuple(b) if (b := _bbox(bbox)) else None)
+            for path, label, bbox in zip(picked.bronze_path, picked.label, picked.bbox, strict=True)
+        ]
+        title = f"{source} | random sample of {len(picked)}, row by row | see {source}.csv"
+        render_sheet(annotations, title=title, tile_px=tile_px, columns=columns).save(
+            sample_dir / f"{source}.jpg", quality=90
+        )
+        written[str(source)] = sample_dir / f"{source}.csv"
+    return written
