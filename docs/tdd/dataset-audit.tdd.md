@@ -48,3 +48,28 @@
   - Yurdakul
   - the Disease `train/` images
 - The locked phone test set doesn't exist yet. Only the owner can capture it.
+
+## Part 2: statistics, remaining sources, CI parity
+
+| Behavior | RED | GREEN |
+|---|---|---|
+| Crop embeddings, confident learning, source/held-out-source/learning-curve probes | `326050c`: modules missing | `4273bf2`: 167 passed |
+| Audit report, review sheets, embedding cache | `d60cea8`: module missing | `dc9af31`: 170 passed |
+| Same-day bronze revisions `<date>.<n>` | RED commit, then `latest_pull` ignored them | GREEN commit: all passed |
+| Seeded random-sample review sheets | test failed (function missing) | `caa56d8`: all passed, coverage 99.28 % |
+
+- **Confident learning** is implemented in-repo. `cleanlab` is AGPL-3.0 (AGENTS.md
+  rule 7; noted in `docs/architecture.md`).
+- **CI parity:** scikit-learn is in the dev group, so the audit tests run in CI without
+  torch. A clean core + dev environment passes at 99.28 % coverage.
+- **Real-data runs:**
+  - Kamat (sha256 n/a: whole-dataset ZIP) and Fresh/Rotten (sha256 matches) were
+    ingested, contact-sheeted and enabled.
+  - Disease `train/` landed as pull `2026-11-02.2`.
+  - `scripts/dataset_audit.py` ran over 5 sources. Findings #10–#16 and the statistics
+    are in `docs/datasets.md`.
+- **Not done:**
+  - the 2-D embedding plot (UMAP / t-SNE). The source probe answers the same question
+    with a number.
+  - human verdicts on the review lists and random samples (owner).
+  - acceptance of ADR 0006 (owner).
