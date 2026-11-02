@@ -110,6 +110,7 @@ def test_repo_registry_only_enables_verified_sources() -> None:
     enabled = {name for name, spec in load_sources().items() if spec.enabled}
     assert enabled == {
         "kamat_2025",
+        "fresh_rotten_fruits_2022",
         "riseholme_2021",
         "strawberry_ds_2023",
         "strawberry_disease_2025",

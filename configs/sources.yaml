@@ -100,17 +100,19 @@ sources:
       augmented copies, which near-duplicate removal must catch.
 
   fresh_rotten_fruits_2022:
-    enabled: false # VERIFY: folder names for the two strawberry classes
+    # Verified 2026-11-02 (pull 2026-11-02, sha256 matches Mendeley) on contact sheets.
+    # Image-level labels: ~1 in 4 sampled images is a pile of many berries.
     title: Fresh and Rotten Fruits Dataset for Machine-Based Evaluation of Fruit Quality
     url: https://data.mendeley.com/datasets/bdd69gyhv8
     doi: 10.17632/bdd69gyhv8.1
     license: CC-BY-4.0
     commercial_use: true
     format: imagefolder
+    root: Original Image # `Original Image.zip`; Augmented Image.zip is not used
     unmapped: drop # the seven other fruits
     labels:
-      FreshStrawberry: {defects: []} # VERIFY folder name
-      RottenStrawberry: {defects: [rot]} # VERIFY folder name
+      FreshStrawberry: {defects: []} # means "not rotten": a few sampled berries are deformed
+      RottenStrawberry: {maturity: overripe, defects: [rot], needs_review: true} # shrivelled/dried, past peak
     notes: 200 fresh + 200 rotten strawberry originals (512²); augmented copies also included.
 
   strawberry_disease_2025:
