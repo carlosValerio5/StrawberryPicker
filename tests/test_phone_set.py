@@ -124,3 +124,9 @@ def test_evaluate_pull_gives_an_adr_0005_verdict(tmp_path) -> None:
     assert checks["B2"]["passed"] is None  # no overripe berries: recall can't be judged
     assert checks["B3"]["passed"]
     assert report["verdict"] == "incomplete"  # a class with no examples blocks a full pass
+
+
+def test_unresolved_items_need_adjudication(labels) -> None:
+    from strawberry_picker.evaluation.phone_set import unresolved_items
+
+    assert unresolved_items(labels) == ["p3_0"]  # p1_1 was adjudicated; p2_1 is not a fruit

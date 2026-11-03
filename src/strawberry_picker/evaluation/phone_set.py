@@ -216,3 +216,13 @@ def evaluate_pull(
         else ("pass" if all(r is True for r in results) else "incomplete")
     )
     return {"agreement": agreement, "metrics": metrics, "checks": checks, "verdict": verdict}
+
+
+def unresolved_items(labels: pd.DataFrame) -> list[str]:
+    """Crops the labelers disagree on (or were unsure about) and nobody adjudicated yet."""
+    decided = set(ground_truth(labels).item_id)
+    return [
+        item
+        for item, by in _votes(labels).items()
+        if item not in decided and not all(v.not_fruit for v in by.values())
+    ]
