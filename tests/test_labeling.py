@@ -10,7 +10,6 @@ from datetime import UTC, datetime
 import pandas as pd
 import pytest
 from PIL import Image
-
 from strawberry_picker.labeling.tool import (
     Label,
     LabelStore,
