@@ -10,3 +10,11 @@ Thin command-line entry points. Each script parses arguments, loads a config wit
 | `contact_sheets.py <source>` | Tile ~50 random crops per source label into `reports/dataset-audit/<source>/contact-sheets/`. Use it to check a source before enabling it |
 | `build_silver.py` | Rebuild `data/silver/` from every enabled source |
 | `build_gold.py <task> <version>` | Release an immutable gold dataset |
+| `dataset_audit.py` | Statistical audit, review lists and random samples → `reports/dataset-audit/` |
+| `make_label_task.py <kind>` | Turn a backlog (`overripe`, `needs-review`, `random-sample`, `flagged`) into a labeling task |
+| `label.py <task.csv> --labeler <you>` | Keyboard labeling page on 127.0.0.1 (`--blind`, `--sample 50`) |
+| `ingest_reviews.py labels_*.csv` | Land finished labels in `bronze/human_review/`; the next `build_silver.py` applies them |
+| `propose_boxes.py <photo folder>` | OWLv2 boxes for phone photos → `task.csv` (downloads ~600 MB weights on first use) |
+| `ingest_phone_set.py <folder>` | Land the finished phone set in `bronze/phone_testset/` (locked: never in silver/gold) |
+| `train_maturity.py` | Train the DINOv2 linear-probe baseline → `models/maturity_cls/<run_id>/` |
+| `evaluate_phone_set.py` | The ADR 0005 verdict on the locked phone set, or the adjudication task if labelers disagree |

@@ -18,6 +18,7 @@ from PIL import Image, ImageOps
 from strawberry_picker.data.bronze import latest_pull
 from strawberry_picker.data.dedup import dihedral_hashes, find_near_duplicates
 from strawberry_picker.data.readers import Annotation, read_annotations
+from strawberry_picker.data.reviews import apply_reviews, load_reviews, resolve_reviews
 from strawberry_picker.data.sources import GroupBy, SourceSpec
 from strawberry_picker.paths import Layer, layer_dir
 from strawberry_picker.schema import SILVER_COLUMNS
@@ -152,6 +153,7 @@ def build_silver(
                         "bbox": None if annotation.bbox is None else list(annotation.bbox),
                         "group_id": _group_id(spec, image_id, parent),
                         "ingested_at": now,
+                        "reviewed_by": None,
                     }
                 )
 
@@ -164,6 +166,7 @@ def build_silver(
     manifest = pd.DataFrame(
         [r for r in rows if r["image_id"] not in dropped_ids], columns=list(SILVER_COLUMNS)
     )
+    manifest = apply_reviews(manifest, resolve_reviews(load_reviews()))
     rejected_df = (
         pd.DataFrame(rejected, columns=list(REJECTED_COLUMNS))
         .sort_values(["bronze_path", "reason", "detail"])

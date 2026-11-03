@@ -34,18 +34,19 @@ docs/
 models/                    trained weights/checkpoints — git-ignored
 notebooks/                 exploration only; naming rule in notebooks/README.md
 reports/                   generated metrics/figures — git-ignored
-scripts/                   thin CLIs: ingest_source.py, contact_sheets.py, build_silver.py, build_gold.py,
-                           dataset_audit.py
+scripts/                   thin CLIs (table in scripts/README.md): ingest, audit, label, train, evaluate
 src/strawberry_picker/
   paths.py                 ONLY place that resolves filesystem locations
   schema.py                taxonomy enums + SilverRecord (code mirror of data-contract.md)
   config.py                YAML config loading
   data/                    bronze.py (ingest) → silver.py (clean) → gold.py (split/export)
     sources.py             registry parsing; readers.py (imagefolder/YOLO/COCO); dedup.py (dHash)
+    reviews.py             human review labels (bronze/human_review) applied to silver on rebuild
   audit/                   dataset audits → reports/dataset-audit/: contact_sheets.py (raw bronze),
                            embeddings.py, label_issues.py (confident learning), probes.py, report.py
-  models/                  model definitions / backbones / heads
-  evaluation/              metrics, confusion matrices, reports
+  labeling/                tool.py (keyboard labeling page), tasks.py, proposals.py (OWLv2 boxes)
+  models/                  linear_probe.py (DINOv2 + logistic baseline, run artifacts)
+  evaluation/              metrics.py (ADR 0005 numbers), maturity.py, phone_set.py (locked verdict)
   inference/               predict on new images
 tests/                     pytest; must not need real data or GPUs
 ```
@@ -60,8 +61,8 @@ make format     # ruff format + autofix
 
 Use `uv run <cmd>` to run anything inside the project env.
 
-CI (`.github/workflows/ci.yml`) runs the same checks on every pull request with Python 3.11
-and 3.12: ruff lint and format, `pytest --cov` (fails under 80 %), and a guard that fails if
+CI (`.github/workflows/ci.yml`) runs on every pull request with Python 3.11 and 3.12, and
+both jobs are **required to merge into `main`**: ruff lint and format, `pytest --cov` (fails under 80 %), and a guard that fails if
 any image, parquet, archive or weight file is tracked. It installs core + dev only, so tests
 that need the `ml` extra must `pytest.importorskip` it.
 
@@ -77,7 +78,9 @@ that need the `ml` extra must `pytest.importorskip` it.
 5. **Resolve paths through `strawberry_picker.paths`.** Never hardcode `data/...`
    or absolute paths. The data dir can live outside the repo (`STRAWBERRY_DATA_DIR`).
 6. **Label meaning comes from `docs/labeling/rubric.md`** (USDA-anchored). Pass/fail bars
-   are fixed in ADR 0005 *before* results are seen. Never tune against the locked phone test set.
+   are fixed in ADR 0005/0007 *before* results are seen. The locked phone set
+   (`bronze/phone_testset`) is read only by `scripts/evaluate_phone_set.py`: never register it,
+   train on it, or tune against it. `kamat_2025` is a development proxy, never trained on.
 7. **The taxonomy lives in two places that must stay in sync:**
    `docs/data-contract.md` (for humans) and `src/strawberry_picker/schema.py` (for code).
    Change both in the same commit, and add an ADR if classes change.

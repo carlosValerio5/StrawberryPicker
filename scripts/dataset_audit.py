@@ -9,10 +9,9 @@ from __future__ import annotations
 import argparse
 import logging
 
-import numpy as np
 import pandas as pd
 
-from strawberry_picker.audit.embeddings import dinov2_embedder, embed_crops
+from strawberry_picker.audit.embeddings import cached_embeddings, dinov2_embedder
 from strawberry_picker.audit.report import (
     audit_frame,
     run_audit,
@@ -21,8 +20,6 @@ from strawberry_picker.audit.report import (
     write_review_sheets,
 )
 from strawberry_picker.paths import Layer, layer_dir, reports_dir
-
-logger = logging.getLogger(__name__)
 
 
 def main() -> None:
@@ -40,24 +37,14 @@ def main() -> None:
     out = reports_dir() / "dataset-audit"
     out.mkdir(parents=True, exist_ok=True)
 
-    cache_path = out / "embeddings.parquet"
-    cache = pd.read_parquet(cache_path) if cache_path.exists() else pd.DataFrame()
-    if not cache.empty:
-        cache = cache[cache.model == args.model]
-    known = set(cache.crop_id) if not cache.empty else set()
-    missing = frame[~frame.crop_id.isin(known)]
-    if len(missing):
-        logger.info("embedding %d new crops with %s", len(missing), args.model)
-        vectors = embed_crops(
-            missing, silver / "images", dinov2_embedder(args.model), batch_size=args.batch_size
-        )
-        new = pd.DataFrame(
-            {"crop_id": missing.crop_id, "model": args.model, "embedding": list(vectors)}
-        )
-        cache = pd.concat([cache, new], ignore_index=True)
-        cache.to_parquet(cache_path, index=False)
-    by_crop = cache.set_index("crop_id").embedding
-    embeddings = np.stack(by_crop.loc[frame.crop_id].to_numpy())
+    embeddings = cached_embeddings(
+        frame,
+        silver / "images",
+        out / "embeddings.parquet",
+        lambda: dinov2_embedder(args.model),
+        model=args.model,
+        batch_size=args.batch_size,
+    )
 
     result = run_audit(frame, embeddings, seed=args.seed)
     report = write_report(result, out)

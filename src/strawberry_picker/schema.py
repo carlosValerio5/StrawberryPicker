@@ -72,6 +72,7 @@ class SilverRecord:
     bbox: tuple[float, float, float, float] | None
     group_id: str
     ingested_at: datetime
+    reviewed_by: str | None = None  # labelers whose agreed review set this row's labels
 
 
 SILVER_COLUMNS: tuple[str, ...] = tuple(f.name for f in fields(SilverRecord))

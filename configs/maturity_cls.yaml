@@ -1,17 +1,15 @@
-# Baseline: frozen DINOv2 backbone + linear head for maturity classification.
+# Baseline: linear probe on frozen DINOv2-small crop embeddings (scripts/train_maturity.py).
 task: maturity_cls
-dataset: maturity_cls_v0.1          # folder under data/gold/
+dataset: maturity_cls_v0.1          # gold release under data/gold/ (scripts/build_gold.py)
+classes: [unripe, ripe, overripe]   # ordinal; overripe has no gold rows until reviews land
 
 model:
-  backbone: facebook/dinov2-small   # Apache-2.0
-  freeze_backbone: true
-  image_size: 224
+  backbone: facebook/dinov2-small   # Apache-2.0; embeddings cached per crop
+  head: logistic_regression         # class-balanced, standardised features
+  c: 1.0
 
-train:
-  epochs: 20
-  batch_size: 32
-  lr: 1.0e-3
-  seed: 42
+holdout_sources: [kamat_2025]       # ADR 0007: development proxy, never trained on
+seed: 42
 
 eval:
-  primary_metric: macro_f1
+  bootstrap_resamples: 2000         # intervals resample groups (images / photos)

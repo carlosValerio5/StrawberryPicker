@@ -113,3 +113,34 @@ def test_ingest_unpacks_tar(tmp_data_dir, tmp_path, make_image, make_spec) -> No
     pull = ingest(make_spec(), archive, date(2026, 11, 2))
 
     assert (pull / "data" / "Ripe" / "a.png").is_file()
+
+
+def test_ingest_reviews_lands_label_files_as_a_pull(tmp_data_dir, tmp_path) -> None:
+    from strawberry_picker.data.bronze import ingest_reviews
+
+    labels = tmp_path / "labels_alice.csv"
+    labels.write_text("item_id,labeler\nx_0,alice\n")
+
+    pull = ingest_reviews([labels], date(2026, 11, 5))
+
+    assert pull == tmp_data_dir / "bronze" / "human_review" / "2026-11-05"
+    assert (pull / "labels_alice.csv").read_text() == labels.read_text()
+    assert "human review" in (pull / "SOURCE.md").read_text().lower()
+    with pytest.raises(FileExistsError):
+        ingest_reviews([labels], date(2026, 11, 5))
+    assert ingest_reviews([labels], date(2026, 11, 5), revision=2).name == "2026-11-05.2"
+
+
+def test_ingest_phone_set_lands_the_folder_outside_the_registry(tmp_data_dir, tmp_path) -> None:
+    from strawberry_picker.data.bronze import ingest_phone_set
+
+    folder = tmp_path / "phone"
+    folder.mkdir()
+    (folder / "IMG_1.jpg").write_bytes(b"jpeg")
+    (folder / "task.csv").write_text("item_id\n")
+
+    pull = ingest_phone_set(folder, date(2026, 11, 5))
+
+    assert pull == tmp_data_dir / "bronze" / "phone_testset" / "2026-11-05"
+    assert (pull / "IMG_1.jpg").read_bytes() == b"jpeg"
+    assert "locked" in (pull / "SOURCE.md").read_text().lower()

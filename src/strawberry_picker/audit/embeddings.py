@@ -85,3 +85,30 @@ def dinov2_embedder(model_name: str = "facebook/dinov2-small") -> EmbedFn:  # pr
         return model(**inputs).pooler_output.float().cpu().numpy()
 
     return embed
+
+
+def cached_embeddings(
+    frame: pd.DataFrame,
+    images_dir: Path,
+    cache_path: Path,
+    embed_factory: Callable[[], EmbedFn],
+    *,
+    model: str,
+    batch_size: int = 64,
+) -> np.ndarray:
+    """Embeddings for ``frame`` rows (by ``crop_id``), embedding only crops not yet cached.
+
+    The cache (``crop_id, model, embedding``) keeps every model's vectors side by side.
+    ``embed_factory`` is only called when something is missing, so loading weights is lazy.
+    """
+    cache = pd.read_parquet(cache_path) if cache_path.exists() else pd.DataFrame()
+    known = set(cache.crop_id[cache.model == model]) if not cache.empty else set()
+    missing = frame[~frame.crop_id.isin(known)]
+    if len(missing):
+        vectors = embed_crops(missing, images_dir, embed_factory(), batch_size=batch_size)
+        new = pd.DataFrame({"crop_id": missing.crop_id, "model": model, "embedding": list(vectors)})
+        cache = pd.concat([cache, new], ignore_index=True)
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache.to_parquet(cache_path, index=False)
+    by_crop = cache[cache.model == model].set_index("crop_id").embedding
+    return np.stack(by_crop.loc[frame.crop_id].to_numpy())
