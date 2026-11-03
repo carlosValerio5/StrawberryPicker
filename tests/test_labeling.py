@@ -125,3 +125,26 @@ def test_server_shows_the_given_label_when_not_blind(tmp_path, task) -> None:
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_crop_task_from_silver_rows(tmp_path) -> None:
+    from strawberry_picker.labeling.tasks import crop_task
+
+    silver = pd.DataFrame(
+        {
+            "image_id": ["img1", "img1", "img2"],
+            "bronze_path": ["src/2026-11-02/a.jpg", "src/2026-11-02/a.jpg", "src/2026-11-02/b.jpg"],
+            "maturity": ["overripe", "ripe", None],
+            "defects": [["mold"], [], ["rot"]],
+            "bbox": [[1.0, 2.0, 30.0, 40.0], [5.0, 5.0, 9.0, 9.0], None],
+        }
+    )
+
+    task = crop_task(silver, tmp_path / "bronze")
+
+    assert list(task.columns) == ["item_id", "image_path", "bbox", "given", "group"]
+    assert task.item_id.tolist() == ["img1_0", "img1_1", "img2_0"]
+    assert task.image_path.iloc[0] == str(tmp_path / "bronze" / "src/2026-11-02/a.jpg")
+    assert json.loads(task.bbox.iloc[0]) == [1.0, 2.0, 30.0, 40.0] and task.bbox.iloc[2] == ""
+    assert task.given.tolist() == ["overripe +mold", "ripe", "rot"]
+    assert task.group.tolist() == ["img1", "img1", "img2"]

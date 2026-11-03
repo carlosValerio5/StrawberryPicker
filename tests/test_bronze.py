@@ -113,3 +113,19 @@ def test_ingest_unpacks_tar(tmp_data_dir, tmp_path, make_image, make_spec) -> No
     pull = ingest(make_spec(), archive, date(2026, 11, 2))
 
     assert (pull / "data" / "Ripe" / "a.png").is_file()
+
+
+def test_ingest_reviews_lands_label_files_as_a_pull(tmp_data_dir, tmp_path) -> None:
+    from strawberry_picker.data.bronze import ingest_reviews
+
+    labels = tmp_path / "labels_alice.csv"
+    labels.write_text("item_id,labeler\nx_0,alice\n")
+
+    pull = ingest_reviews([labels], date(2026, 11, 5))
+
+    assert pull == tmp_data_dir / "bronze" / "human_review" / "2026-11-05"
+    assert (pull / "labels_alice.csv").read_text() == labels.read_text()
+    assert "human review" in (pull / "SOURCE.md").read_text().lower()
+    with pytest.raises(FileExistsError):
+        ingest_reviews([labels], date(2026, 11, 5))
+    assert ingest_reviews([labels], date(2026, 11, 5), revision=2).name == "2026-11-05.2"
