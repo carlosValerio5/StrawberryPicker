@@ -47,8 +47,10 @@ def krippendorff_alpha(ratings: np.ndarray, *, level: str = "nominal") -> float:
             for d in range(c + 1, k):
                 between = cumulative[d] - (cumulative[c - 1] if c else 0.0)
                 delta[c, d] = delta[d, c] = (between - (marginals[c] + marginals[d]) / 2) ** 2
-    expected = np.outer(marginals, marginals)
-    return float(1 - (n - 1) * (coincidences * delta).sum() / (expected * delta).sum())
+    expected_disagreement = (np.outer(marginals, marginals) * delta).sum()
+    if expected_disagreement == 0:  # a single category: α is undefined
+        return float("nan")
+    return float(1 - (n - 1) * (coincidences * delta).sum() / expected_disagreement)
 
 
 def quadratic_weighted_kappa(truth: np.ndarray, predicted: np.ndarray, *, n_classes: int) -> float:
