@@ -115,6 +115,31 @@ probes, group-aware CV; full report in `reports/dataset-audit/report.md`):
 - 287 overripe candidates (Fresh/Rotten 199, Kamat 88) are waiting for review.
 - Gold-eligible defects: **rot 723, mold 683**.
 
+### Part 3: reviewed overripe and the first 3-class model (2026-11-03)
+
+All 287 overripe candidates were reviewed on the phone labeler by one labeler. Landed as
+`bronze/human_review/2026-11-02`.
+
+- **Verdicts:** 278 confirmed overripe (Fresh/Rotten 196, Kamat 82), 9 actually ripe, 0 not
+  a strawberry, 0 unsure.
+- **Defects marked:** rot 101, mold 93, mechanical damage 37, bruise 6, pest damage 6, and
+  **deformed 143**. That last count needs a second look: the rubric's `deformed` means
+  misshapen growth, not shrivelling with age.
+- **Gold `maturity_cls_v0.2`:** unripe 3,144, ripe 761, **overripe 278**.
+
+**Finding #17: overripe is learned as a source shortcut.** All 139 overripe *training*
+examples come from Fresh/Rotten (whole photos on white paper, often piles), which has
+almost no other class.
+
+| Run | Overripe recall, in-distribution | Overripe recall, Kamat proxy (never trained on) | Proxy QWK | Proxy ECE |
+|---|---|---|---|---|
+| `20261103T023318Z` (v0.1, no overripe) | n/a | n/a | 0.674 | 0.130 |
+| `20261103T040357Z` (v0.2) | 1.00 (23/23) | **0.20** [0.11, 0.32] (16/82) | **0.429** | **0.339** |
+
+On the proxy, 61 of 82 overripe berries were called ripe. The in-distribution 1.00 is
+same-source and shouldn't be cited on its own. Overripe needs examples from more than one
+setting before any model's overripe numbers mean anything.
+
 ## Expected class balance after mapping (approximate)
 
 | unripe | ripe | overripe | rot / mold | bruise, deformed, pest, mechanical |
