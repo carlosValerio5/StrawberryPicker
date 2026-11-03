@@ -123,3 +123,27 @@ def ingest(
     (partial / "SOURCE.md").write_text(card)
     partial.rename(dest)
     return dest
+
+
+def ingest_reviews(label_files: list[Path], ingest_date: date, revision: int | None = None) -> Path:
+    """Land finished label files from ``scripts/label.py`` as a ``human_review`` pull.
+
+    Silver reads every pull of ``human_review`` (``strawberry_picker.data.reviews``).
+    """
+    dest = source_dir("human_review", ingest_date, revision)
+    if dest.exists():
+        raise FileExistsError(f"{dest} already exists — bronze is append-only")
+    partial = dest.with_name(f".{dest.name}.partial")
+    shutil.rmtree(partial, ignore_errors=True)
+    partial.mkdir(parents=True)
+    for path in label_files:
+        shutil.copy2(path, partial / Path(path).name)
+    names = ", ".join(f"`{Path(p).name}`" for p in label_files)
+    (partial / "SOURCE.md").write_text(
+        "# Human review labels\n\n"
+        f"Label files from `scripts/label.py`, landed {ingest_date.isoformat()}"
+        + (f" (revision {revision})" if revision else "")
+        + f": {names}.\nApplied to silver by `strawberry_picker.data.reviews`.\n"
+    )
+    partial.rename(dest)
+    return dest
