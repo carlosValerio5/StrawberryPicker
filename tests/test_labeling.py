@@ -164,3 +164,74 @@ def test_load_task_resolves_relative_image_paths(tmp_path, make_image) -> None:
     ).to_csv(folder / "task.csv", index=False)
 
     assert load_task(folder / "task.csv").image_path.iloc[0] == str(folder / "IMG_1.jpg")
+
+
+def _serve(task, store, **kwargs):
+    server = make_server(task, store, order=work_order(task), **kwargs)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server, f"http://127.0.0.1:{server.server_address[1]}"
+
+
+def _raw(url: str, *, cookie: str | None = None, payload: dict | None = None):
+    data = None if payload is None else json.dumps(payload).encode()
+    request = urllib.request.Request(url, data=data, method="POST" if data else "GET")
+    if cookie:
+        request.add_header("Cookie", cookie)
+    return urllib.request.urlopen(request)
+
+
+def test_token_guards_every_route_and_is_kept_in_a_cookie(tmp_path, task) -> None:
+    server, base = _serve(task, LabelStore(tmp_path / "l.csv", "alice"), blind=True, token="s3cret")
+    try:
+        for path in ("/", "/api/next", "/api/config", "/crop/c0"):
+            with pytest.raises(urllib.error.HTTPError) as denied:
+                _raw(base + path)
+            assert denied.value.code == 403
+
+        with _raw(base + "/?token=s3cret") as response:
+            cookie = response.headers["Set-Cookie"].split(";")[0]
+            assert "HttpOnly" in response.headers["Set-Cookie"]
+        with _raw(base + "/api/next", cookie=cookie) as response:
+            assert json.loads(response.read())["item"]["item_id"] == "c0"
+        with pytest.raises(urllib.error.HTTPError) as wrong:
+            _raw(base + "/api/next", cookie="token=nope")
+        assert wrong.value.code == 403
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_each_phone_labels_under_its_own_name(tmp_path, task) -> None:
+    labels = tmp_path / "labels.csv"
+    server, base = _serve(task, LabelStore(labels, None), blind=True)
+    try:
+        assert _call(base, "/api/config")[0] == {"labeler": None, "blind": True}
+        _call(base, "/api/label", {"item_id": "c0", "maturity": "ripe", "labeler": "alice"})
+        assert _call(base, "/api/next?labeler=alice")[0]["item"]["item_id"] == "c1"
+        assert _call(base, "/api/next?labeler=bob")[0]["item"]["item_id"] == "c0"
+        assert _call(base, "/api/undo", {"labeler": "bob"})[0]["undone"] is None
+        assert _call(base, "/api/undo", {"labeler": "alice"})[0]["undone"] == "c0"
+
+        for bad in ("", "a b", "x" * 40, "../etc"):
+            with pytest.raises(urllib.error.HTTPError) as rejected:
+                _call(base, "/api/label", {"item_id": "c0", "maturity": "ripe", "labeler": bad})
+            assert rejected.value.code == 400
+        with pytest.raises(urllib.error.HTTPError) as nameless:
+            _call(base, "/api/next")
+        assert nameless.value.code == 400  # no default labeler and none given
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert set(pd.read_csv(labels).labeler) == {"alice"}
+
+
+def test_page_works_by_touch(tmp_path, task) -> None:
+    server, base = _serve(task, LabelStore(tmp_path / "l.csv", "a"), blind=False)
+    try:
+        page = _call(base, "/")[0].decode()
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert 'name="viewport"' in page
+    for target in ('data-m="ripe"', 'data-d="mold"', 'id="save"', 'id="notfruit"', 'id="undo"'):
+        assert target in page and "<button" in page
