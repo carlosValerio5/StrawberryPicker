@@ -319,6 +319,7 @@ display:grid;gap:16px;grid-template-columns:minmax(0,448px) minmax(0,1fr)}
 @media (max-width:760px){main{grid-template-columns:1fr}}
 #crop{width:100%;aspect-ratio:1;object-fit:contain;border-radius:12px;background:var(--card);
 display:block}
+#crop:not([src]){visibility:hidden}
 .meta{display:flex;justify-content:space-between;color:var(--muted);font-size:14px;
 margin-top:6px;gap:8px}
 h2{font-size:17px;margin:0 0 4px}
