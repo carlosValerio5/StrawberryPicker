@@ -57,12 +57,16 @@ The page shows one crop at a time, with the [rubric](rubric.md) beside it:
 - **Labeler 1** labels every crop.
 - **Labeler 2** labels the blind random 50 (`--sample 50`), without seeing labeler 1's
   answers.
-- **Agreement and adjudication:** Krippendorff's α is computed on the 50. Then both
-  labelers settle every disagreement and every `unsure`.
+- **Agreement and adjudication:** run `uv run python scripts/evaluate_phone_set.py --pull <folder>`.
+  If any crop is disputed or `unsure`, it writes `adjudication.csv` instead of a verdict.
+  Both labelers label it together with `--labeler adjudicated`. Then re-run it for the
+  verdict. Krippendorff's α is computed on the double-labeled crops.
 
 ## 4. Where it lives
 
-- **Bronze:** the photos, `captures.csv`, the proposals, and both label files are one
-  bronze pull of the source `phone_testset_<yyyy_mm>`, which is never edited.
-- **Locked:** the source is registered with `locked: true`. Gold training releases refuse
-  locked sources, and only the evaluation script reads them.
+- **Bronze:** when labeling is finished, land the whole folder (photos, `captures.csv`,
+  `task.csv` and the label files) with
+  `uv run python scripts/ingest_phone_set.py <folder>`. It becomes a pull of
+  `data/bronze/phone_testset/`, which is never edited.
+- **Locked:** `phone_testset` is **never added to the source registry**, so silver, gold and
+  training can't read it. Only `scripts/evaluate_phone_set.py` does.

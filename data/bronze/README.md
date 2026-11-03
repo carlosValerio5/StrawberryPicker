@@ -15,6 +15,13 @@ bronze/
         └── ...
 ```
 
+## Two special folders (not in the source registry)
+
+- `human_review/<date>[.<n>]/`: label files from `scripts/label.py`, landed with
+  `scripts/ingest_reviews.py`. Silver applies them on every rebuild (`data/reviews.py`).
+- `phone_testset/<date>[.<n>]/`: the **locked** phone test set (ADR 0007). Silver and gold
+  never read it; only `scripts/evaluate_phone_set.py` does.
+
 ## Adding a pull
 
 Register the source in `configs/sources.yaml` first. Then:
