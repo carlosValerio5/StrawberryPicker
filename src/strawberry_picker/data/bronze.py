@@ -130,20 +130,43 @@ def ingest_reviews(label_files: list[Path], ingest_date: date, revision: int | N
 
     Silver reads every pull of ``human_review`` (``strawberry_picker.data.reviews``).
     """
-    dest = source_dir("human_review", ingest_date, revision)
-    if dest.exists():
-        raise FileExistsError(f"{dest} already exists — bronze is append-only")
-    partial = dest.with_name(f".{dest.name}.partial")
-    shutil.rmtree(partial, ignore_errors=True)
-    partial.mkdir(parents=True)
-    for path in label_files:
-        shutil.copy2(path, partial / Path(path).name)
     names = ", ".join(f"`{Path(p).name}`" for p in label_files)
-    (partial / "SOURCE.md").write_text(
+    card = (
         "# Human review labels\n\n"
         f"Label files from `scripts/label.py`, landed {ingest_date.isoformat()}"
         + (f" (revision {revision})" if revision else "")
         + f": {names}.\nApplied to silver by `strawberry_picker.data.reviews`.\n"
     )
+    return _land("human_review", label_files, ingest_date, revision, card)
+
+
+def ingest_phone_set(folder: Path, ingest_date: date, revision: int | None = None) -> Path:
+    """Land the locked phone test set (photos, captures, task, labels) as a bronze pull.
+
+    It is deliberately **not** in the source registry, so silver and gold never read it;
+    only the evaluation does (ADR 0007).
+    """
+    card = (
+        "# Locked phone test set\n\n"
+        f"Landed {ingest_date.isoformat()}. **Locked:** never in silver, gold or training. "
+        "Only `scripts/evaluate_phone_set.py` reads it. Protocol: "
+        "docs/labeling/test-set-protocol.md.\n"
+    )
+    files = sorted(p for p in Path(folder).iterdir() if p.is_file())
+    return _land("phone_testset", files, ingest_date, revision, card)
+
+
+def _land(
+    source_name: str, files: list[Path], ingest_date: date, revision: int | None, card: str
+) -> Path:
+    dest = source_dir(source_name, ingest_date, revision)
+    if dest.exists():
+        raise FileExistsError(f"{dest} already exists — bronze is append-only")
+    partial = dest.with_name(f".{dest.name}.partial")
+    shutil.rmtree(partial, ignore_errors=True)
+    partial.mkdir(parents=True)
+    for path in files:
+        shutil.copy2(path, partial / Path(path).name)
+    (partial / "SOURCE.md").write_text(card)
     partial.rename(dest)
     return dest

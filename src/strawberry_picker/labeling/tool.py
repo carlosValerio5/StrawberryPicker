@@ -143,7 +143,11 @@ class LabelStore:
 
 
 def load_task(path: Path) -> pd.DataFrame:
-    return pd.read_csv(path, dtype=str, keep_default_na=False)
+    """Read a task; relative ``image_path`` values are relative to the task file."""
+    task = pd.read_csv(path, dtype=str, keep_default_na=False)
+    folder = Path(path).parent
+    task["image_path"] = [str(p if Path(p).is_absolute() else folder / p) for p in task.image_path]
+    return task
 
 
 def write_task(frame: pd.DataFrame, path: Path) -> Path:
