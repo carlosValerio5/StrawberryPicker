@@ -1,6 +1,8 @@
 # 0005 — Pre-registered acceptance criteria
 
 - **Status:** accepted. Written before any audit numbers or model results exist.
+  Amended by ADR [0007](0007-lean-phone-test-set.md): lean phone set, α measured on a
+  blind 50, bootstrap by photo.
 - **Date:** 2026-11-02
 
 ## Context
