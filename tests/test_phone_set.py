@@ -70,3 +70,57 @@ def test_labeler_agreement_uses_double_labelled_items_only(labels) -> None:
     assert agreement["labelers"] == ["alice", "bob"]
     assert agreement["n_items"] == 3  # p1_0, p1_1, p2_0 (unsure and not-fruit excluded)
     assert agreement["alpha_maturity"] < 1.0
+
+
+class _FakeProbe:
+    """Predicts 'ripe' when the crop's mean red channel is high."""
+
+    classes_ = np.array([0, 1])
+
+    def predict_proba(self, features: np.ndarray) -> np.ndarray:
+        ripe = (features[:, 0] > 128).astype(float) * 0.9 + 0.05
+        return np.column_stack([1 - ripe, ripe])
+
+
+def test_evaluate_pull_gives_an_adr_0005_verdict(tmp_path) -> None:
+    from PIL import Image
+
+    from strawberry_picker.evaluation.phone_set import evaluate_pull
+
+    pull = tmp_path / "pull"
+    pull.mkdir()
+    rows = []
+    for p in range(8):
+        image = Image.new("RGB", (80, 40), (230, 20, 20))  # left: red (ripe)
+        image.paste((40, 200, 40), (40, 0, 80, 40))  # right: green (unripe)
+        image.save(pull / f"P{p}.jpg")
+        rows += [
+            (f"P{p}_0", f"P{p}.jpg", "[2, 2, 38, 38]", "", f"P{p}"),
+            (f"P{p}_1", f"P{p}.jpg", "[42, 2, 78, 38]", "", f"P{p}"),
+        ]
+    pd.DataFrame(rows, columns=["item_id", "image_path", "bbox", "given", "group"]).to_csv(
+        pull / "task.csv", index=False
+    )
+    for labeler in ("alice", "bob"):
+        store = LabelStore(pull / "labels_task.csv", labeler)
+        for item, *_ in rows:
+            store.record(
+                parse_label(
+                    {"item_id": item, "maturity": "ripe" if item.endswith("_0") else "unripe"}
+                )
+            )
+
+    def mean_colour(crops):
+        return np.stack([np.asarray(c, dtype=float).mean(axis=(0, 1)) for c in crops])
+
+    report = evaluate_pull(
+        pull, _FakeProbe(), mean_colour, ("unripe", "ripe", "overripe"), n_resamples=100
+    )
+
+    assert report["agreement"]["alpha_maturity"] == pytest.approx(1.0)
+    assert report["metrics"]["n"] == 16 and report["metrics"]["n_groups"] == 8
+    checks = {c["id"]: c for c in report["checks"]}
+    assert checks["A"]["passed"]
+    assert checks["B2"]["passed"] is None  # no overripe berries: recall can't be judged
+    assert checks["B3"]["passed"]
+    assert report["verdict"] == "incomplete"  # a class with no examples blocks a full pass
