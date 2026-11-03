@@ -48,8 +48,8 @@ def source_dir(source_name: str, ingest_date: date, revision: int | None = None)
 _PULL_NAME = re.compile(r"^(\d{4}-\d{2}-\d{2})(?:\.(\d+))?$")
 
 
-def latest_pull(source_name: str) -> Path | None:
-    """Newest pull by (date, revision), or ``None`` if the source was never ingested."""
+def all_pulls(source_name: str) -> list[Path]:
+    """Every ``<date>[.<n>]`` pull of a source, oldest first."""
     root = layer_dir(Layer.BRONZE) / validate_source_name(source_name)
     pulls = []
     for path in root.glob("*") if root.is_dir() else ():
@@ -60,7 +60,13 @@ def latest_pull(source_name: str) -> Path | None:
             pulls.append((date.fromisoformat(match[1]), int(match[2] or 1), path))
         except ValueError:
             continue
-    return max(pulls)[2] if pulls else None
+    return [path for *_, path in sorted(pulls)]
+
+
+def latest_pull(source_name: str) -> Path | None:
+    """Newest pull by (date, revision), or ``None`` if the source was never ingested."""
+    pulls = all_pulls(source_name)
+    return pulls[-1] if pulls else None
 
 
 def render_source_card(

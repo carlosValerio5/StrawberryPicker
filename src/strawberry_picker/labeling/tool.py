@@ -14,6 +14,7 @@ import csv
 import io
 import json
 import random
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from http import HTTPStatus
@@ -66,6 +67,23 @@ def parse_label(payload: dict[str, Any]) -> Label:
     return Label(str(payload["item_id"]), maturity, defects, not_fruit, unsure)
 
 
+def current_labels(rows: Iterable[Mapping[str, str]]) -> dict[tuple[str, str], Label]:
+    """``(labeler, item_id) -> Label`` after replaying labels and undos in file order."""
+    current: dict[tuple[str, str], Label] = {}
+    for row in rows:
+        key = (row["labeler"], row["item_id"])
+        current.pop(key, None)
+        if row["action"] == "label":
+            current[key] = Label(
+                row["item_id"],
+                row["maturity"] or None,
+                tuple(d for d in row["defects"].split("|") if d),
+                row["not_fruit"] == "True",
+                row["unsure"] == "True",
+            )
+    return current
+
+
 class LabelStore:
     """One labeler's view of an append-only labels CSV."""
 
@@ -104,18 +122,7 @@ class LabelStore:
 
     def done(self) -> dict[str, Label]:
         """Current label per item for this labeler, after undos (insertion-ordered)."""
-        current: dict[str, Label] = {}
-        for row in self._rows():
-            current.pop(row["item_id"], None)
-            if row["action"] == "label":
-                current[row["item_id"]] = Label(
-                    row["item_id"],
-                    row["maturity"] or None,
-                    tuple(d for d in row["defects"].split("|") if d),
-                    row["not_fruit"] == "True",
-                    row["unsure"] == "True",
-                )
-        return current
+        return {item: label for (_, item), label in current_labels(self._rows()).items()}
 
     def undo(self, *, now: datetime | None = None) -> str | None:
         """Withdraw this labeler's most recent label; returns its item id."""

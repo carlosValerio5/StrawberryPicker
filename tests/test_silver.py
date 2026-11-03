@@ -217,3 +217,25 @@ def test_parent_dir_grouping_keeps_sessions_together(tmp_data_dir, make_image, m
         "toy_source/Ripe/session1",
         "toy_source/Ripe/session2",
     ]
+
+
+def test_build_silver_applies_agreed_human_reviews(bronze_sources, tmp_data_dir) -> None:
+    from strawberry_picker.labeling.tool import LabelStore, parse_label
+
+    first = build_silver(bronze_sources, **BUILD_KWARGS).manifest
+    assert first.reviewed_by.isna().all()
+    field = first[first.source_name == "toy_yolo"]
+    ripe_crop = f"{field.image_id.iloc[0]}_1"  # the needs_review "ripe" box
+    review = tmp_data_dir / "bronze" / "human_review" / "2026-11-05" / "labels.csv"
+    LabelStore(review, "alice").record(parse_label({"item_id": ripe_crop, "maturity": "overripe"}))
+
+    second = build_silver(bronze_sources, **BUILD_KWARGS).manifest
+
+    reviewed = second[second.source_name == "toy_yolo"].iloc[1]
+    assert (reviewed.maturity, reviewed.needs_review, reviewed.reviewed_by) == (
+        "overripe",
+        False,
+        "alice",
+    )
+    assert reviewed.source_label == "ripe"  # what the source said is kept for audits
+    assert len(second) == len(first)

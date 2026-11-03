@@ -28,16 +28,26 @@ def _review(tmp_path, pull: str, labeler: str, labels: list[dict]) -> None:
 
 @pytest.fixture
 def reviews(tmp_data_dir, tmp_path) -> pd.DataFrame:
-    _review(tmp_path, "2026-11-05", "alice", [
-        {"item_id": "img1_0", "maturity": "overripe", "defects": ["mold"]},
-        {"item_id": "img1_1", "not_fruit": True},  # a flower
-        {"item_id": "img2_0", "maturity": "ripe"},
-        {"item_id": "img3_0", "unsure": True},
-    ])
-    _review(tmp_path, "2026-11-05.2", "bob", [
-        {"item_id": "img1_0", "maturity": "overripe", "defects": ["mold"]},
-        {"item_id": "img2_0", "maturity": "overripe", "defects": ["rot"]},  # disagrees
-    ])
+    _review(
+        tmp_path,
+        "2026-11-05",
+        "alice",
+        [
+            {"item_id": "img1_0", "maturity": "overripe", "defects": ["mold"]},
+            {"item_id": "img1_1", "not_fruit": True},  # a flower
+            {"item_id": "img2_0", "maturity": "ripe"},
+            {"item_id": "img3_0", "unsure": True},
+        ],
+    )
+    _review(
+        tmp_path,
+        "2026-11-05.2",
+        "bob",
+        [
+            {"item_id": "img1_0", "maturity": "overripe", "defects": ["mold"]},
+            {"item_id": "img2_0", "maturity": "overripe", "defects": ["rot"]},  # disagrees
+        ],
+    )
     return load_reviews()
 
 
@@ -71,9 +81,13 @@ def test_apply_reviews_overrides_holds_and_never_drops_rows(reviews) -> None:
 
     assert len(result) == 4  # crop ids stay stable: reviews never delete rows
     agreed, flower, disputed, unsure = (result.iloc[i] for i in range(4))
-    assert (agreed.maturity, list(agreed.defects), agreed.needs_review) == ("overripe", ["mold"], False)
+    assert (agreed.maturity, list(agreed.defects), agreed.needs_review) == (
+        "overripe",
+        ["mold"],
+        False,
+    )
     assert agreed.reviewed_by == "alice+bob"
-    assert flower.needs_review and flower.maturity is None and flower.reviewed_by == "alice"
+    assert flower.needs_review and pd.isna(flower.maturity) and flower.reviewed_by == "alice"
     assert disputed.needs_review and disputed.maturity == "overripe"  # source label kept
     assert unsure.needs_review  # was gold-eligible; a reviewer was unsure, so it's held
 
@@ -81,4 +95,6 @@ def test_apply_reviews_overrides_holds_and_never_drops_rows(reviews) -> None:
 def test_no_reviews_means_no_change(tmp_data_dir) -> None:
     manifest = _manifest()
     assert load_reviews().empty
-    pd.testing.assert_frame_equal(apply_reviews(manifest, resolve_reviews(load_reviews())), manifest)
+    pd.testing.assert_frame_equal(
+        apply_reviews(manifest, resolve_reviews(load_reviews())), manifest
+    )
