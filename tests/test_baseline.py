@@ -74,3 +74,33 @@ def test_linear_probe_run_round_trip(tmp_path) -> None:
     np.testing.assert_allclose(reloaded.predict_proba(features), probe.predict_proba(features))
     with pytest.raises(FileExistsError):
         save_run(tmp_path / "run1", probe, {}, {})
+
+
+def test_run_baseline_never_trains_on_held_out_sources() -> None:
+    pytest.importorskip("sklearn")
+    from strawberry_picker.models.linear_probe import run_baseline
+
+    rng = np.random.default_rng(0)
+    n = 120
+    rows = pd.DataFrame(
+        {
+            "source_name": ["a"] * 80 + ["proxy"] * 40,
+            "split": (["train"] * 60 + ["test"] * 20) + ["train"] * 40,
+            "maturity": np.tile(["unripe", "ripe"], n // 2),
+            "group_id": [f"g{i // 2}" for i in range(n)],
+        }
+    )
+    signal = np.where(rows.maturity == "ripe", 3.0, -3.0)
+    embeddings = rng.normal(size=(n, 4))
+    embeddings[:, 0] += signal
+    embeddings[80:, 0] *= -1  # the proxy source looks the other way round
+
+    probe, metrics = run_baseline(
+        rows, embeddings, CLASSES, holdout_sources=["proxy"], seed=0, n_resamples=50
+    )
+
+    assert metrics["n_train"] == 60  # proxy rows are not trained on, even in "train"
+    assert metrics["in_distribution"]["n"] == 20
+    assert metrics["proxy"]["proxy"]["n"] == 40
+    assert metrics["in_distribution"]["macro_f1"] > 0.9
+    assert metrics["proxy"]["proxy"]["macro_f1"] < 0.2  # held out, so its flip is exposed
