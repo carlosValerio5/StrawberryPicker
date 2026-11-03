@@ -170,3 +170,20 @@ def _land(
     (partial / "SOURCE.md").write_text(card)
     partial.rename(dest)
     return dest
+
+
+def ingest_box_proposals(
+    proposals: Path, source_name: str, model: str, ingest_date: date, revision: int | None = None
+) -> Path:
+    """Land machine-proposed boxes (``<source>.csv``) as a pull of ``source_name``.
+
+    They're model output, not ground truth: the registry's ``box_proposals`` decides how
+    silver uses them (``strawberry_picker.data.sources.BoxProposals``).
+    """
+    card = (
+        f"# Machine box proposals\n\nModel `{model}`, landed {ingest_date.isoformat()}"
+        + (f" (revision {revision})" if revision else "")
+        + f": `{Path(proposals).name}`.\nColumns: bronze_path, score, x0, y0, x1, y1 "
+        "(pixels, EXIF-corrected). Written by `scripts/propose_source_boxes.py`.\n"
+    )
+    return _land(validate_source_name(source_name), [proposals], ingest_date, revision, card)

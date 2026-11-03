@@ -1,7 +1,7 @@
 # Baseline: linear probe on frozen DINOv2-small crop embeddings (scripts/train_maturity.py).
 task: maturity_cls
-dataset: maturity_cls_v0.1          # gold release under data/gold/ (scripts/build_gold.py)
-classes: [unripe, ripe, overripe]   # ordinal; overripe has no gold rows until reviews land
+dataset: maturity_cls_v0.3          # gold release under data/gold/ (scripts/build_gold.py)
+classes: [unripe, ripe, overripe]   # ordinal; overripe comes from human-reviewed candidates
 
 model:
   backbone: facebook/dinov2-small   # Apache-2.0; embeddings cached per crop
