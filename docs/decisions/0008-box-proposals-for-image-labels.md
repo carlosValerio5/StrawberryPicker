@@ -36,3 +36,7 @@ Kamat proxy (finding #17 in `docs/datasets.md`).
 - Overripe training examples from this source drop from 139 to a few dozen. They're
   cleaner, but it's a small class. Overripe photos from more settings are still the real fix.
 - The rule is generic: any image-labeled source can opt in.
+- **Result:** the crops did *not* fix overripe transfer. Kamat-proxy overripe recall was
+  0.15 (it was 0.20 with whole photos). Overripe doesn't transfer in either direction
+  between the two sources (finding #18), so the shortcut is in what the sources show, not
+  in the background. The crops stay because they remove the pile-label errors.

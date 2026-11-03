@@ -79,7 +79,7 @@ Datasheets for every source are in [`docs/datasheets/`](datasheets/).
 | 11 | **About 1 in 4 sampled Kamat "unripe" boxes is a flower or bud** | contact sheet | `unripe` → `needs_review` |
 | 12 | **Kamat "rotten" is mostly white fuzzy mold** | contact sheet | mapped to `overripe` + `mold`, `needs_review` |
 | 13 | **574 of Kamat's 1,332 label files have no image** in the deposit | file listing | none; 342 fruit rows are usable |
-| 14 | **Fresh/Rotten labels are per image and about 1 in 4 images is a pile of berries.** "Fresh" means not rotten; some are deformed | contact sheets | Fresh kept as `defects: []` (caveat noted); Rotten → `overripe` + `rot`, `needs_review` |
+| 14 | **Fresh/Rotten labels are per image, and many images are piles of berries** (about 1 in 4 on the contact sheets; OWLv2 later counted 46 %, see ADR 0008). "Fresh" means not rotten; some are deformed | contact sheets | Fresh kept as `defects: []` (caveat noted); Rotten → `overripe` + `rot`, `needs_review` |
 | 15 | **Disease `train/` is now complete** (pull `2026-11-02.2`, the whole-dataset ZIP). 319 augmented copies were removed | silver rejections | `exclude` for train removed |
 | 16 | **Confident learning misses boxes that aren't fruit.** It flagged 1.3 % of Strawberry-DS, while the contact sheets showed 6–12 % empty boxes | audit report vs contact sheets | **ADR [0006](decisions/0006-random-sample-error-rate.md) (proposed)**: estimate error rates from a random sample |
 
@@ -139,6 +139,26 @@ almost no other class.
 On the proxy, 61 of 82 overripe berries were called ripe. The in-distribution 1.00 is
 same-source and shouldn't be cited on its own. Overripe needs examples from more than one
 setting before any model's overripe numbers mean anything.
+
+**Finding #18: cropping didn't fix it, because the two sources' "overripe" look different.**
+
+OWLv2 single-berry crops (ADR [0008](decisions/0008-box-proposals-for-image-labels.md),
+gold `maturity_cls_v0.3`) removed the white-paper background and the piles. That left 62
+Fresh/Rotten overripe crops (38 of them in train). Then each source was held out in turn:
+
+| Trained with overripe from | Held out | Overripe recall on the held-out source | Misses called |
+|---|---|---|---|
+| Fresh/Rotten (38; run `20261103T050445Z`) | Kamat | 0.15 [0.08, 0.25] | ripe (64/82) |
+| Kamat (77) | Fresh/Rotten | 0.27 | ripe (44/62) |
+
+Each source shows one narrow kind of overripe: Fresh/Rotten berries are shrivelled and
+dried, while Kamat's are red with white fuzzy mold. A probe that relies on color calls
+both kinds "ripe". The fix is overripe examples from more settings, not more cropping.
+Whether the decay signs (mold, rot, shrivelling) belong in the maturity label or only in
+the defect head is an open taxonomy question.
+
+The OWLv2 crops are kept anyway: they remove the pile-label errors (46 % of Fresh/Rotten
+images held out).
 
 ## Expected class balance after mapping (approximate)
 

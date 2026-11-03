@@ -1,6 +1,6 @@
 # Baseline: linear probe on frozen DINOv2-small crop embeddings (scripts/train_maturity.py).
 task: maturity_cls
-dataset: maturity_cls_v0.2          # gold release under data/gold/ (scripts/build_gold.py)
+dataset: maturity_cls_v0.3          # gold release under data/gold/ (scripts/build_gold.py)
 classes: [unripe, ripe, overripe]   # ordinal; overripe comes from human-reviewed candidates
 
 model:
