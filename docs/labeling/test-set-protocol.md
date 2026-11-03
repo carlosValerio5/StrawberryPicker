@@ -43,6 +43,10 @@ boxes by hand.
 uv run python scripts/label.py <task.csv> --labeler alice --blind
 ```
 
+Add `--lan` to label from phones: open the printed link on a phone on the same Wi-Fi
+(not a guest or campus network that isolates devices), type your name once, and tap. Each
+phone labels under its own name, into the same file. On a laptop, the keys below also work.
+
 The page shows one crop at a time, with the [rubric](rubric.md) beside it:
 
 | Key | Meaning |

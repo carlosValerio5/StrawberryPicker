@@ -60,3 +60,22 @@ noise, as before.
 - No phone photos exist yet, so there's no ADR 0005 verdict.
 - Overripe still has 0 gold rows until the overripe task is labeled and landed.
 - The defect head (ADR 0005 §C) isn't built.
+
+## Phone labeling (follow-up)
+
+| Behavior | RED | GREEN |
+|---|---|---|
+| Token on every route (query → HttpOnly cookie, or `X-Token`); per-phone labeler names with their own progress and undo; names validated; touch page | `913c433` | the next commit |
+
+- **Checked at phone size** (375×812, in-app browser, dark mode):
+  - 403 without the token
+  - name prompt
+  - Overripe, Mold and Rot taps highlight
+  - Save advances the count, Undo restores it
+  - the labels file held exactly the expected rows
+- **Two quick taps at once:** in the emulator, two taps fired back to back (no pause) lost
+  the second one. With a normal pause, every tap registered. I haven't checked this on a
+  real phone.
+- **Address:** `--lan` first chose a VPN address (`10.2.0.2`), unreachable from Wi-Fi. It
+  now prefers macOS `en0`/`en1`, with a `--host` override. Checked from this Mac at the
+  Wi-Fi address: 403 without the token, 200 with it.
