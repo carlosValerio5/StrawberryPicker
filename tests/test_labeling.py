@@ -148,3 +148,19 @@ def test_crop_task_from_silver_rows(tmp_path) -> None:
     assert json.loads(task.bbox.iloc[0]) == [1.0, 2.0, 30.0, 40.0] and task.bbox.iloc[2] == ""
     assert task.given.tolist() == ["overripe +mold", "ripe", "rot"]
     assert task.group.tolist() == ["img1", "img1", "img2"]
+
+
+def test_load_task_resolves_relative_image_paths(tmp_path, make_image) -> None:
+    folder = tmp_path / "phone"
+    make_image(folder / "IMG_1.jpg")
+    pd.DataFrame(
+        {
+            "item_id": ["IMG_1_0"],
+            "image_path": ["IMG_1.jpg"],
+            "bbox": [""],
+            "given": [""],
+            "group": ["IMG_1"],
+        }
+    ).to_csv(folder / "task.csv", index=False)
+
+    assert load_task(folder / "task.csv").image_path.iloc[0] == str(folder / "IMG_1.jpg")
