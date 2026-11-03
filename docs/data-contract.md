@@ -3,16 +3,20 @@
 The labels and manifest schemas every layer and model agrees on.
 Code mirror: `src/strawberry_picker/schema.py`. **Keep both in sync.**
 
-> Status: **v0, proposed.** Confirm the classes with the team (and ideally a
-> grower or QA spec) before labeling at scale. Record changes in an ADR.
+> Status: **v0.** Class definitions follow the USDA strawberry grade standard
+> (ADR [0004](decisions/0004-usda-label-rubric.md)). Record changes in an ADR.
 
 ## 1. Maturity (single label, ordinal)
 
+The exact decision rules, anchored to the USDA grade standard, are in
+[labeling/rubric.md](labeling/rubric.md) (ADR [0004](decisions/0004-usda-label-rubric.md)).
+The rubric wins wherever this short summary differs from it.
+
 | Value | Meaning (visual cue) |
 |-------|----------------------|
-| `unripe`   | Not ready to pick: green, white, or only partly red (< ~75 % of the surface) |
-| `ripe`     | ≥ ~75 % evenly red, firm, glossy. Ready to pick |
-| `overripe` | Dark red/purplish, dull, soft or leaking. Past peak |
+| `unripe`   | Less than ¾ of the surface is pink or red: green, white, or turning |
+| `ripe`     | At least ¾ of the surface is pink or red, with no overripe signs |
+| `overripe` | Dark red/purplish, dull, wrinkled, slumped or leaking. Past peak |
 
 The order matters (`unripe < ripe < overripe`), so ordinal-aware losses and
 metrics are allowed. Partly-red "turning" fruit counts as `unripe`

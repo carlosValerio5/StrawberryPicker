@@ -23,24 +23,49 @@ def validate_source_name(source_name: str) -> str:
     return source_name
 
 
-def source_dir(source_name: str, ingest_date: date) -> Path:
-    """``data/bronze/<source_name>/<YYYY-MM-DD>/`` — where one pull of a source lands."""
-    return layer_dir(Layer.BRONZE) / validate_source_name(source_name) / ingest_date.isoformat()
+def _pull_name(ingest_date: date, revision: int | None) -> str:
+    if revision is None:
+        return ingest_date.isoformat()
+    if revision < 2:
+        raise ValueError(
+            f"revision must be >= 2 (the first pull of a day has none), got {revision}"
+        )
+    return f"{ingest_date.isoformat()}.{revision}"
+
+
+def source_dir(source_name: str, ingest_date: date, revision: int | None = None) -> Path:
+    """``data/bronze/<source>/<YYYY-MM-DD>[.<n>]/``: where one pull of a source lands.
+
+    ``.<n>`` (n >= 2) marks a second pull on the same day, e.g. a fuller re-download.
+    """
+    return (
+        layer_dir(Layer.BRONZE)
+        / validate_source_name(source_name)
+        / _pull_name(ingest_date, revision)
+    )
+
+
+_PULL_NAME = re.compile(r"^(\d{4}-\d{2}-\d{2})(?:\.(\d+))?$")
 
 
 def latest_pull(source_name: str) -> Path | None:
-    """Most recent ``<YYYY-MM-DD>`` pull of a source, or ``None`` if it was never ingested."""
+    """Newest pull by (date, revision), or ``None`` if the source was never ingested."""
     root = layer_dir(Layer.BRONZE) / validate_source_name(source_name)
     pulls = []
     for path in root.glob("*") if root.is_dir() else ():
+        match = _PULL_NAME.match(path.name)
+        if not match:
+            continue
         try:
-            pulls.append((date.fromisoformat(path.name), path))
+            pulls.append((date.fromisoformat(match[1]), int(match[2] or 1), path))
         except ValueError:
             continue
-    return max(pulls)[1] if pulls else None
+    return max(pulls)[2] if pulls else None
 
 
-def render_source_card(spec: SourceSpec, ingest_date: date, artifact_name: str) -> str:
+def render_source_card(
+    spec: SourceSpec, ingest_date: date, artifact_name: str, revision: int | None = None
+) -> str:
     """Contents of the ``SOURCE.md`` every bronze pull must carry."""
     usage = "allowed" if spec.commercial_use else "**Non-commercial use only**"
     lines = [
@@ -53,7 +78,9 @@ def render_source_card(spec: SourceSpec, ingest_date: date, artifact_name: str) 
         f"| DOI | {spec.doi or '—'} |",
         f"| License | {spec.license} |",
         f"| Commercial use | {usage} |",
-        f"| Retrieved | {ingest_date.isoformat()} |",
+        f"| Retrieved | {ingest_date.isoformat()}"
+        + (f" (revision {revision})" if revision else "")
+        + " |",
         f"| Artifact | `{artifact_name}` |",
     ]
     if spec.citation:
@@ -63,7 +90,9 @@ def render_source_card(spec: SourceSpec, ingest_date: date, artifact_name: str) 
     return "\n".join(lines) + "\n"
 
 
-def ingest(spec: SourceSpec, artifact: Path, ingest_date: date) -> Path:
+def ingest(
+    spec: SourceSpec, artifact: Path, ingest_date: date, revision: int | None = None
+) -> Path:
     """Land a downloaded archive or folder as a new, append-only bronze pull.
 
     The pull is assembled in a hidden temp folder and renamed into place, so an
@@ -71,7 +100,7 @@ def ingest(spec: SourceSpec, artifact: Path, ingest_date: date) -> Path:
     """
     if not artifact.exists():
         raise FileNotFoundError(artifact)
-    dest = source_dir(spec.name, ingest_date)
+    dest = source_dir(spec.name, ingest_date, revision)
     if dest.exists():
         raise FileExistsError(f"{dest} already exists — bronze is append-only")
     partial = dest.with_name(f".{dest.name}.partial")
@@ -84,6 +113,7 @@ def ingest(spec: SourceSpec, artifact: Path, ingest_date: date) -> Path:
     else:
         partial.mkdir(parents=True)
         shutil.unpack_archive(artifact, partial, filter="data")  # tar: refuse unsafe members
-    (partial / "SOURCE.md").write_text(render_source_card(spec, ingest_date, artifact.name))
+    card = render_source_card(spec, ingest_date, artifact.name, revision)
+    (partial / "SOURCE.md").write_text(card)
     partial.rename(dest)
     return dest

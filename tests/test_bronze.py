@@ -15,6 +15,33 @@ def test_latest_pull_picks_newest_date(tmp_data_dir) -> None:
     assert latest_pull("toy_source") == source / "2026-11-02"
 
 
+def test_latest_pull_orders_same_day_revisions(tmp_data_dir) -> None:
+    source = tmp_data_dir / "bronze" / "toy_source"
+    for name in ("2026-11-02", "2026-11-02.2", "2026-11-02.x", "2026-11-01.9"):
+        (source / name).mkdir(parents=True)
+    assert latest_pull("toy_source") == source / "2026-11-02.2"
+    (source / "2026-11-03").mkdir()
+    assert latest_pull("toy_source") == source / "2026-11-03"
+
+
+def test_ingest_revision_lands_next_to_the_first_pull(
+    tmp_data_dir, tmp_path, make_image, make_spec
+) -> None:
+    artifact = tmp_path / "download"
+    make_image(artifact / "Ripe" / "a.png")
+    spec = make_spec()
+    first = ingest(spec, artifact, date(2026, 11, 2))
+
+    second = ingest(spec, artifact, date(2026, 11, 2), revision=2)
+
+    assert second == first.with_name("2026-11-02.2")
+    assert "2026-11-02 (revision 2)" in (second / "SOURCE.md").read_text()
+    with pytest.raises(FileExistsError):
+        ingest(spec, artifact, date(2026, 11, 2), revision=2)
+    with pytest.raises(ValueError, match="revision"):
+        ingest(spec, artifact, date(2026, 11, 2), revision=1)
+
+
 def test_latest_pull_none_when_missing(tmp_data_dir) -> None:
     assert latest_pull("toy_source") is None
     (tmp_data_dir / "bronze" / "toy_source").mkdir(parents=True)

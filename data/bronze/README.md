@@ -9,7 +9,7 @@ in the silver transform instead.
 ```
 bronze/
 └── <source_name>/              # snake_case, e.g. kaggle_strawberry_ripeness, field_2026_11
-    └── <ingest_date>/          # YYYY-MM-DD, the day it was pulled
+    └── <ingest_date>/          # YYYY-MM-DD, the day it was pulled (YYYY-MM-DD.2 for a 2nd pull that day)
         ├── SOURCE.md           # where it came from, license, URL/DOI, who pulled it
         ├── <original files>    # untouched images, annotations, archives
         └── ...

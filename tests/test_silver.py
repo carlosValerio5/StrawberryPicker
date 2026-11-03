@@ -14,7 +14,12 @@ from strawberry_picker.schema import SILVER_COLUMNS
 from conftest import pattern_image
 
 NOW = datetime(2026, 11, 2, 12, 0, tzinfo=UTC)
-BUILD_KWARGS = {"min_side_px": 32, "jpeg_quality": 95, "near_duplicate_max_distance": 6, "now": NOW}
+BUILD_KWARGS = {
+    "min_side_px": 32,
+    "jpeg_quality": 95,
+    "near_duplicate_max_distance": 24,
+    "now": NOW,
+}
 
 
 def test_image_id_is_deterministic_and_content_based(red_image: Image.Image) -> None:
