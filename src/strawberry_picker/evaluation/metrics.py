@@ -58,7 +58,10 @@ def quadratic_weighted_kappa(truth: np.ndarray, predicted: np.ndarray, *, n_clas
     expected = np.outer(observed.sum(axis=1), observed.sum(axis=0)) / observed.sum()
     grid = np.arange(n_classes)
     weights = (grid[:, None] - grid[None, :]) ** 2 / (n_classes - 1) ** 2
-    return float(1 - (weights * observed).sum() / (weights * expected).sum())
+    disagreement_by_chance = (weights * expected).sum()
+    if disagreement_by_chance == 0:  # one class only: κ is undefined
+        return float("nan")
+    return float(1 - (weights * observed).sum() / disagreement_by_chance)
 
 
 def per_class_recall(truth: np.ndarray, predicted: np.ndarray, *, n_classes: int) -> np.ndarray:
@@ -100,6 +103,11 @@ def bootstrap_ci(
         metric(np.concatenate([members[g] for g in rng.integers(0, len(names), len(names))]))
         for _ in range(n_resamples)
     ]
+    finite = np.asarray(scores, dtype=float)
+    finite = finite[np.isfinite(finite)]  # e.g. recall of a class a resample didn't draw
+    point = metric(np.arange(len(groups)))
+    if not len(finite):
+        return point, float("nan"), float("nan")
     tail = (1 - confidence) / 2 * 100
-    low, high = np.percentile(scores, [tail, 100 - tail], method="nearest")
-    return metric(np.arange(len(groups))), float(low), float(high)
+    low, high = np.percentile(finite, [tail, 100 - tail], method="nearest")
+    return point, float(low), float(high)
