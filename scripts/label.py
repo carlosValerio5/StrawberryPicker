@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import secrets
 import socket
+import subprocess
 import webbrowser
 from pathlib import Path
 
@@ -26,6 +27,7 @@ def main() -> None:
     parser.add_argument(
         "--lan", action="store_true", help="serve to phones on this Wi-Fi, behind a token"
     )
+    parser.add_argument("--host", help="with --lan: address to listen on (default: Wi-Fi)")
     parser.add_argument("--blind", action="store_true", help="hide the source's label")
     parser.add_argument("--sample", type=int, help="label only a random N (e.g. 50)")
     parser.add_argument("--seed", type=int, default=0)
@@ -42,7 +44,7 @@ def main() -> None:
     order = work_order(task, sample=args.sample, seed=args.seed)
     host, token = ("127.0.0.1", None)
     if args.lan:
-        host, token = lan_address(), secrets.token_urlsafe(12)
+        host, token = args.host or lan_address(), secrets.token_urlsafe(12)
     server = make_server(
         task, store, blind=args.blind, order=order, host=host, port=args.port, token=token
     )
@@ -62,7 +64,14 @@ def main() -> None:
 
 
 def lan_address() -> str:
-    """This machine's address on the local network (no packet is sent)."""
+    """The Wi-Fi address phones can reach: macOS en0/en1 first, since a VPN can own the
+    default route; then whichever interface routes to the local network (no packet sent)."""
+    for interface in ("en0", "en1"):
+        found = subprocess.run(
+            ["ipconfig", "getifaddr", interface], capture_output=True, text=True, check=False
+        )
+        if found.returncode == 0 and found.stdout.strip():
+            return found.stdout.strip()
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
         probe.connect(("10.255.255.255", 1))
         return probe.getsockname()[0]
