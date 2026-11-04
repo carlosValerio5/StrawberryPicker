@@ -164,3 +164,52 @@ def test_load_task_resolves_relative_image_paths(tmp_path, make_image) -> None:
     ).to_csv(folder / "task.csv", index=False)
 
     assert load_task(folder / "task.csv").image_path.iloc[0] == str(folder / "IMG_1.jpg")
+
+
+def test_several_berries_is_a_label_without_maturity(tmp_path) -> None:
+    label = parse_label({"item_id": "c0", "multi_fruit": True})
+    assert label.multi_fruit and label.maturity is None and not label.not_fruit
+
+    store = LabelStore(tmp_path / "labels.csv", "alice")
+    store.record(label, now=NOW)
+    assert store.done()["c0"].multi_fruit
+    assert pd.read_csv(tmp_path / "labels.csv").columns[-1] == "multi_fruit"
+
+
+OLD_HEADER = "item_id,labeler,maturity,defects,not_fruit,unsure,action,labeled_at\n"
+
+
+def test_label_files_from_before_multi_fruit_still_work(tmp_path) -> None:
+    path = tmp_path / "labels.csv"
+    path.write_text(OLD_HEADER + "c0,alice,ripe,,False,False,label,2026-11-05T10:00:00+00:00\n")
+    store = LabelStore(path, "alice")
+
+    assert not store.done()["c0"].multi_fruit
+    store.record(parse_label({"item_id": "c1", "maturity": "unripe"}), now=NOW)
+    store.undo(now=NOW)
+    rows = pd.read_csv(path, keep_default_na=False)
+    assert list(rows.columns) == OLD_HEADER.strip().split(",")  # header never rewritten
+    assert rows.maturity.tolist() == ["ripe", "unripe", ""]
+    assert rows.action.tolist() == ["label", "label", "undo"]
+    with pytest.raises(ValueError, match="new labels file"):
+        store.record(parse_label({"item_id": "c2", "multi_fruit": True}), now=NOW)
+
+
+def test_server_accepts_several_berries_only_when_enabled(tmp_path, task) -> None:
+    for allow in (False, True):
+        store = LabelStore(tmp_path / f"labels_{allow}.csv", "alice")
+        server = make_server(task, store, blind=True, order=work_order(task), multi_fruit=allow)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        base = f"http://127.0.0.1:{server.server_address[1]}"
+        try:
+            assert _call(base, "/api/next")[0]["multi_fruit"] is allow
+            if allow:
+                _call(base, "/api/label", {"item_id": "c0", "multi_fruit": True})
+                assert store.done()["c0"].multi_fruit
+            else:
+                with pytest.raises(urllib.error.HTTPError) as refused:
+                    _call(base, "/api/label", {"item_id": "c0", "multi_fruit": True})
+                assert refused.value.code == 400
+        finally:
+            server.shutdown()
+            server.server_close()
