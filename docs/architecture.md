@@ -8,7 +8,8 @@ image ──► [1] detect strawberries ──► per-fruit crops ──► [2] 
 ```
 
 1. **Detection / localization.** Find each fruit and output its box (and optionally a mask).
-   Skip this step for single-fruit, centered images.
+   Skip this step for single-fruit, centered images. Until a detector is trained, inference
+   uses zero-shot OWLv2 ([ADR 0009](decisions/0009-inference-detector.md), `strawberry_picker.inference`).
 2. **Maturity classification.** Single label, ordinal (`docs/data-contract.md` §1).
 3. **Defect classification.** Multi-label (§2a). The grade is derived by rule, not learned.
 

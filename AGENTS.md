@@ -47,7 +47,7 @@ src/strawberry_picker/
   labeling/                tool.py (keyboard labeling page), tasks.py, proposals.py (OWLv2 boxes)
   models/                  linear_probe.py (DINOv2 + logistic baseline, run artifacts)
   evaluation/              metrics.py (ADR 0005 numbers), maturity.py, phone_set.py (locked verdict)
-  inference/               predict on new images
+  inference/               pipeline.py: photo → detect (OWLv2) → crop → per-berry maturity
 tests/                     pytest; must not need real data or GPUs
 ```
 
