@@ -179,6 +179,8 @@ def test_build_writes_stats_and_card(silver_rows) -> None:
     card = (out / "DATASET_CARD.md").read_text()
     for expected in ("maturity_cls_v0.1", "toy", "CC-BY-4.0", "CC-BY-NC-4.0", "seed"):
         assert expected in card
+    # Runs trained before ADR 0008 recover their crop padding from this line.
+    assert "- **padding**: `0.15`" in card
 
 
 def test_commercial_only_drops_non_commercial_rows(silver_rows) -> None:
