@@ -142,3 +142,15 @@ def test_multi_fruit_task_lists_flagged_unreviewed_rows(images, tmp_path) -> Non
     assert task.image_path.iloc[0] == str(tmp_path / "bronze" / "fresh/1/b.jpg")
     assert task.given.iloc[0] == "overripe +rot (detector: 2 berries)"
     assert multi_fruit_task(silver, flags, tmp_path / "bronze", min_count=5).empty
+
+
+def test_no_whole_image_rows_needs_no_detector(images, tmp_path) -> None:
+    boxed = _silver()[lambda f: f.bbox.notna()]
+
+    def no_weights():
+        raise AssertionError("nothing to detect")
+
+    flags = flag_multi_fruit(boxed, images, tmp_path / "c.parquet", no_weights, detector="x")
+
+    assert flags.empty and list(flags.columns) == list(FLAG_COLUMNS)
+    assert summarize(flags).empty

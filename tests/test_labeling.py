@@ -169,6 +169,8 @@ def test_load_task_resolves_relative_image_paths(tmp_path, make_image) -> None:
 def test_several_berries_is_a_label_without_maturity(tmp_path) -> None:
     label = parse_label({"item_id": "c0", "multi_fruit": True})
     assert label.multi_fruit and label.maturity is None and not label.not_fruit
+    with pytest.raises(ValueError, match="several berries"):
+        parse_label({"item_id": "c0", "multi_fruit": True, "maturity": "ripe"})
 
     store = LabelStore(tmp_path / "labels.csv", "alice")
     store.record(label, now=NOW)
