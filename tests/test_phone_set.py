@@ -134,8 +134,8 @@ def test_unresolved_items_need_adjudication(labels) -> None:
 
 def test_evaluate_pull_crops_with_the_training_policy(tmp_path) -> None:
     from PIL import Image
-    from strawberry_picker.data.crops import CropPolicy
 
+    from strawberry_picker.data.crops import CropPolicy
     from strawberry_picker.evaluation.phone_set import evaluate_pull
 
     pull = tmp_path / "pull"

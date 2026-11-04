@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 from PIL import Image
+
+from strawberry_picker.data import gold
 from strawberry_picker.data.crops import (
     LEGACY_POLICY,
     CropPolicy,
@@ -16,8 +18,6 @@ from strawberry_picker.data.crops import (
     resolve_policy,
     with_neighbours,
 )
-
-from strawberry_picker.data import gold
 
 # --- geometry ---------------------------------------------------------------------------
 
@@ -154,6 +154,21 @@ def test_segment_keeps_only_the_target_mask() -> None:
 def test_segment_needs_a_segmenter() -> None:
     with pytest.raises(ValueError, match="segment_fn"):
         crop_fruit(_two_berries(), (5, 5, 15, 15), [], CropPolicy(neighbours="segment"))
+
+
+def test_segment_mask_must_match_the_image() -> None:
+    def wrong_size(img, bbox):
+        return np.ones((3, 3), dtype=bool)
+
+    with pytest.raises(ValueError, match="segment mask"):
+        crop_fruit(
+            _two_berries(), None, None, CropPolicy(neighbours="segment"), segment_fn=wrong_size
+        )
+
+
+def test_neighbour_lists_skip_whole_image_rows() -> None:
+    assert neighbour_overlap((0, 0, 10, 10), None, float("nan")) == 0.0
+    assert neighbour_overlap((0, 0, 10, 10), None, [None, float("nan")]) == 0.0
 
 
 # --- neighbours per row -----------------------------------------------------------------

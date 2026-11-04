@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 import pytest
+
 from strawberry_picker.audit.neighbours import (
     error_by_overlap,
     overlap_summary,

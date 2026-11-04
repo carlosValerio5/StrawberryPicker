@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 from PIL import Image
 
 from strawberry_picker.audit.embeddings import audit_label, embed_crops, with_crop_ids
@@ -82,9 +83,8 @@ def test_embed_crops_masks_neighbours_listed_on_the_row(tmp_path) -> None:
 
 
 def test_cached_embeddings_keeps_one_cache_per_crop_policy(tmp_path) -> None:
-    from strawberry_picker.data.crops import CropPolicy
-
     from strawberry_picker.audit.embeddings import cached_embeddings
+    from strawberry_picker.data.crops import CropPolicy
 
     _red_and_blue(tmp_path)
     calls: list[int] = []
@@ -116,6 +116,22 @@ def test_cached_embeddings_keeps_one_cache_per_crop_policy(tmp_path) -> None:
     assert calls == [1, 1]
     assert plain[0, 2] > 5 and again[0, 2] < 5
     assert np.array_equal(again, from_gold)
+
+
+def test_cached_embeddings_refuses_rows_cut_with_different_policies(tmp_path) -> None:
+    from strawberry_picker.audit.embeddings import cached_embeddings
+    from strawberry_picker.data.crops import CropPolicy
+
+    frame = pd.DataFrame(
+        {
+            "crop_id": ["a_0", "b_0"],
+            "image_id": ["a", "b"],
+            "bbox": [None, None],
+            "crop_policy": [CropPolicy().to_json(), CropPolicy(padding=0.3).to_json()],
+        }
+    )
+    with pytest.raises(ValueError, match="different crop policies"):
+        cached_embeddings(frame, tmp_path, tmp_path / "c.parquet", lambda: None, model="toy")
 
 
 def test_cached_embeddings_reads_caches_written_before_policies(tmp_path) -> None:
