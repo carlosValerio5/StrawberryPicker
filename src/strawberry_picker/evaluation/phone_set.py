@@ -85,15 +85,16 @@ MAX_ECE = 0.10
 
 
 def load_pull_labels(pull_dir: Path) -> pd.DataFrame:
+    """Every label row in the pull. Files written before a column existed read it as empty."""
     frames = [
-        pd.read_csv(p, dtype=str, keep_default_na=False)
+        pd.read_csv(p, dtype=str, keep_default_na=False).reindex(
+            columns=list(LABEL_COLUMNS), fill_value=""
+        )
         for p in sorted(pull_dir.glob("labels*.csv"))
     ]
-    return (
-        pd.concat(frames, ignore_index=True)[list(LABEL_COLUMNS)]
-        if frames
-        else pd.DataFrame(columns=list(LABEL_COLUMNS))
-    )
+    if not frames:
+        return pd.DataFrame(columns=list(LABEL_COLUMNS))
+    return pd.concat(frames, ignore_index=True)
 
 
 def _alpha_ci(ratings: np.ndarray, groups: np.ndarray, n_resamples: int, seed: int):

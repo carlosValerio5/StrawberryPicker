@@ -39,13 +39,15 @@ def load_reviews() -> pd.DataFrame:
     Files written before a column existed (``multi_fruit``) read it as empty.
     """
     frames = [
-        pd.read_csv(path, dtype=str, keep_default_na=False)
+        pd.read_csv(path, dtype=str, keep_default_na=False).reindex(
+            columns=list(LABEL_COLUMNS), fill_value=""
+        )
         for pull in all_pulls(REVIEW_SOURCE)
         for path in sorted(pull.glob("*.csv"))
     ]
     if not frames:
         return pd.DataFrame(columns=list(LABEL_COLUMNS))
-    return pd.concat(frames, ignore_index=True).reindex(columns=list(LABEL_COLUMNS), fill_value="")
+    return pd.concat(frames, ignore_index=True)
 
 
 def resolve_reviews(rows: pd.DataFrame) -> pd.DataFrame:
