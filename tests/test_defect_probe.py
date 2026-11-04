@@ -273,3 +273,12 @@ def test_quality_config_is_valid() -> None:
     rules = config["thresholds"]
     assert set(rules) - {"default"} <= set(DEFECTS)
     assert all(rule["rule"] in {"max_f1", "recall_target"} for rule in rules.values())
+
+
+def test_evaluate_quality_with_no_assessed_rows() -> None:
+    from strawberry_picker.models.defect_probe import evaluate_quality
+
+    report = evaluate_quality([(), ()], [None, None], np.array(["p1", "p2"]), ("rot",))
+
+    assert report["n"] == 0 and report["defects"] == {}
+    json.dumps(report)

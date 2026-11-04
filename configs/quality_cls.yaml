@@ -1,0 +1,25 @@
+# Baseline defect head: one linear probe per defect on frozen DINOv2-small crop embeddings
+# (scripts/train_quality.py, ADR 0010). The grade is derived by rule, never learned.
+task: quality_cls
+dataset: quality_cls_v0.1           # gold release under data/gold/ (scripts/build_gold.py)
+defects: [bruise, mold, rot, deformed, pest_damage, mechanical_damage]   # data contract §2a
+
+model:
+  backbone: facebook/dinov2-small   # Apache-2.0; embeddings cached per crop (shared with maturity)
+  head: logistic_regression         # one class-balanced probe per defect, standardised features
+  c: 1.0
+
+min_positive: 30                    # train positives AND negatives needed before a defect is trained
+
+# Chosen on the gold val split only, fixed before any results (ADR 0010).
+thresholds:
+  default: {rule: max_f1}
+  mold: {rule: recall_target, target: 0.90}   # reject defects: margin above the 0.80 §C bar
+  rot: {rule: recall_target, target: 0.90}
+
+holdout_sources: [kamat_2025]       # ADR 0007: development proxy, never trained on
+seed: 42
+
+eval:
+  bootstrap_resamples: 2000         # intervals resample groups (images / photos)
+  reject_recall_bar: 0.80           # ADR 0005 §C; reported, a verdict only on the phone set
