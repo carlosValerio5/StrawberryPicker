@@ -98,3 +98,33 @@ def test_no_reviews_means_no_change(tmp_data_dir) -> None:
     pd.testing.assert_frame_equal(
         apply_reviews(manifest, resolve_reviews(load_reviews())), manifest
     )
+
+
+def test_several_berries_holds_the_image_but_keeps_the_source_label(tmp_data_dir, tmp_path) -> None:
+    for labeler in ("alice", "bob"):
+        _review(tmp_path, "2026-11-06", labeler, [{"item_id": "img3_0", "multi_fruit": True}])
+    _review(tmp_path, "2026-11-06", "alice", [{"item_id": "img2_0", "multi_fruit": True}])
+    _review(tmp_path, "2026-11-06", "bob", [{"item_id": "img2_0", "maturity": "overripe"}])
+
+    resolved = resolve_reviews(load_reviews())
+    assert resolved.set_index("item_id").loc["img3_0", "multi_fruit"]
+    result = apply_reviews(_manifest(), resolved)
+
+    pile, disputed = result.iloc[3], result.iloc[2]
+    assert pile.needs_review and pile.reviewed_by == "alice+bob"
+    assert (pile.maturity, list(pile.defects)) == ("ripe", [])  # label kept for later boxing
+    assert disputed.needs_review and disputed.maturity == "overripe"
+
+
+def test_review_files_from_before_multi_fruit_load(tmp_data_dir, tmp_path) -> None:
+    pull = tmp_path / "bronze" / "human_review" / "2026-11-04"
+    pull.mkdir(parents=True)
+    (pull / "labels.csv").write_text(
+        "item_id,labeler,maturity,defects,not_fruit,unsure,action,labeled_at\n"
+        "img1_0,alice,ripe,,False,False,label,2026-11-04T10:00:00+00:00\n"
+    )
+
+    resolved = resolve_reviews(load_reviews()).set_index("item_id")
+
+    assert resolved.loc["img1_0", "maturity"] == "ripe"
+    assert not resolved.loc["img1_0", "multi_fruit"]

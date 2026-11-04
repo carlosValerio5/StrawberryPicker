@@ -81,6 +81,7 @@ Datasheets for every source are in [`docs/datasheets/`](datasheets/).
 | 13 | **574 of Kamat's 1,332 label files have no image** in the deposit | file listing | none; 342 fruit rows are usable |
 | 14 | **Fresh/Rotten labels are per image and about 1 in 4 images is a pile of berries.** "Fresh" means not rotten; some are deformed | contact sheets | Fresh kept as `defects: []` (caveat noted); Rotten → `overripe` + `rot`, `needs_review` |
 | 15 | **Disease `train/` is now complete** (pull `2026-11-02.2`, the whole-dataset ZIP). 319 augmented copies were removed | silver rejections | `exclude` for train removed |
+| 14a | **Follow-up to 14: piles are now found by a detector, then confirmed by a person.** `scripts/flag_multi_fruit.py` counts berries (OWLv2) in every whole-image row; `make_label_task.py multi-fruit` sends those with 2+ berries to `label.py --multi-fruit`. An agreed `s` (several berries) keeps the source label but sets `needs_review`, so gold skips the image | `reports/dataset-audit/multi_fruit/report.md` (not run yet: needs the ml extra and weights) | Run it, then label the task |
 | 16 | **Confident learning misses boxes that aren't fruit.** It flagged 1.3 % of Strawberry-DS, while the contact sheets showed 6–12 % empty boxes | audit report vs contact sheets | **ADR [0006](decisions/0006-random-sample-error-rate.md) (proposed)**: estimate error rates from a random sample |
 
 **Statistical audit** (`scripts/dataset_audit.py`, DINOv2-small embeddings, linear

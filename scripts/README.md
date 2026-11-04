@@ -11,8 +11,9 @@ Thin command-line entry points. Each script parses arguments, loads a config wit
 | `build_silver.py` | Rebuild `data/silver/` from every enabled source |
 | `build_gold.py <task> <version>` | Release an immutable gold dataset |
 | `dataset_audit.py` | Statistical audit, review lists and random samples → `reports/dataset-audit/` |
-| `make_label_task.py <kind>` | Turn a backlog (`overripe`, `needs-review`, `random-sample`, `flagged`) into a labeling task |
-| `label.py <task.csv> --labeler <you>` | Keyboard labeling page on 127.0.0.1 (`--blind`, `--sample 50`) |
+| `flag_multi_fruit.py` | Count berries (OWLv2) in whole-image silver rows → `reports/dataset-audit/multi_fruit/`. Flags only; nothing is relabeled |
+| `make_label_task.py <kind>` | Turn a backlog (`overripe`, `needs-review`, `random-sample`, `flagged`, `multi-fruit`) into a labeling task |
+| `label.py <task.csv> --labeler <you>` | Keyboard labeling page on 127.0.0.1 (`--blind`, `--sample 50`, `--multi-fruit` adds the `s` several-berries key) |
 | `ingest_reviews.py labels_*.csv` | Land finished labels in `bronze/human_review/`; the next `build_silver.py` applies them |
 | `propose_boxes.py <photo folder>` | OWLv2 boxes for phone photos → `task.csv` (downloads ~600 MB weights on first use) |
 | `ingest_phone_set.py <folder>` | Land the finished phone set in `bronze/phone_testset/` (locked: never in silver/gold) |

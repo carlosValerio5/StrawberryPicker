@@ -1,8 +1,9 @@
 """Label crops with the keyboard: uv run python scripts/label.py <task.csv> --labeler alice.
 
 Opens a page on http://127.0.0.1:<port>. Keys: 1/2/3 maturity, b m r d p c defects,
-Enter save, n not a strawberry, u unsure, Backspace undo. Stop with Ctrl-C; labels are
-saved as you go, and re-running resumes where you left off.
+Enter save, n not a strawberry, u unsure, Backspace undo (with --multi-fruit also
+s several berries). Stop with Ctrl-C; labels are saved as you go, and re-running resumes
+where you left off.
 """
 
 from __future__ import annotations
@@ -24,13 +25,20 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--out", type=Path, help="labels CSV (default: next to the task)")
     parser.add_argument("--no-browser", action="store_true", help="don't open a browser tab")
+    parser.add_argument(
+        "--multi-fruit",
+        action="store_true",
+        help="offer the 's' several-berries key (the multi-fruit review task)",
+    )
     args = parser.parse_args()
 
     task = load_task(args.task)
     out = args.out or args.task.with_name(f"labels_{args.task.stem}.csv")
     store = LabelStore(out, args.labeler)
     order = work_order(task, sample=args.sample, seed=args.seed)
-    server = make_server(task, store, blind=args.blind, order=order, port=args.port)
+    server = make_server(
+        task, store, blind=args.blind, order=order, port=args.port, multi_fruit=args.multi_fruit
+    )
     url = f"http://127.0.0.1:{server.server_address[1]}"
     print(f"{len(order)} crops, {len(store.done())} already labeled by {args.labeler}")
     print(f"labeling at {url}  (labels -> {out}; Ctrl-C to stop)")

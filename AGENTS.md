@@ -43,7 +43,8 @@ src/strawberry_picker/
     sources.py             registry parsing; readers.py (imagefolder/YOLO/COCO); dedup.py (dHash)
     reviews.py             human review labels (bronze/human_review) applied to silver on rebuild
   audit/                   dataset audits → reports/dataset-audit/: contact_sheets.py (raw bronze),
-                           embeddings.py, label_issues.py (confident learning), probes.py, report.py
+                           embeddings.py, label_issues.py (confident learning), probes.py, report.py,
+                           multi_fruit.py (detector counts berries in whole-image rows)
   labeling/                tool.py (keyboard labeling page), tasks.py, proposals.py (OWLv2 boxes)
   models/                  linear_probe.py (DINOv2 + logistic baseline, run artifacts)
   evaluation/              metrics.py (ADR 0005 numbers), maturity.py, phone_set.py (locked verdict)

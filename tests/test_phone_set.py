@@ -6,9 +6,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from strawberry_picker.evaluation.phone_set import ground_truth, labeler_agreement
+from strawberry_picker.evaluation.phone_set import (
+    ground_truth,
+    labeler_agreement,
+    load_pull_labels,
+)
 from strawberry_picker.labeling.proposals import non_max_suppression, propose
-from strawberry_picker.labeling.tool import LabelStore, parse_label
+from strawberry_picker.labeling.tool import LABEL_COLUMNS, LabelStore, parse_label
 
 
 def test_non_max_suppression_keeps_the_best_of_overlapping_boxes() -> None:
@@ -130,3 +134,19 @@ def test_unresolved_items_need_adjudication(labels) -> None:
     from strawberry_picker.evaluation.phone_set import unresolved_items
 
     assert unresolved_items(labels) == ["p3_0"]  # p1_1 was adjudicated; p2_1 is not a fruit
+
+
+def test_load_pull_labels_reads_files_written_before_multi_fruit(tmp_path) -> None:
+    old_columns = [c for c in LABEL_COLUMNS if c != "multi_fruit"]
+    old = pd.DataFrame([dict.fromkeys(old_columns, "")], columns=old_columns)
+    old.loc[0, ["item_id", "labeler", "maturity", "action"]] = ["a_0", "alice", "ripe", "label"]
+    old.to_csv(tmp_path / "labels_alice.csv", index=False)
+    LabelStore(tmp_path / "labels_bob.csv", "bob").record(
+        parse_label({"item_id": "a_0", "maturity": "ripe"})
+    )
+
+    labels = load_pull_labels(tmp_path)
+
+    assert list(labels.columns) == list(LABEL_COLUMNS)
+    assert sorted(labels.labeler) == ["alice", "bob"]
+    assert set(labels.multi_fruit) <= {"", "False"}
