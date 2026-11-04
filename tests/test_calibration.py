@@ -235,3 +235,14 @@ def test_phone_set_scores_the_calibrated_probabilities(tmp_path) -> None:
     assert raw["metrics"]["ece"] == pytest.approx(0.45)  # 95 % sure, 50 % right
     assert soft["metrics"]["ece"] < 0.1  # same predictions, honest confidence
     assert soft["metrics"]["confusion"] == raw["metrics"]["confusion"]
+
+
+def test_calibration_rejects_impossible_inputs() -> None:
+    from strawberry_picker.models.calibration import TemperatureScaled, fit_temperature
+
+    with pytest.raises(ValueError, match="zero rows"):
+        fit_temperature(np.zeros((0, 3)), np.zeros(0))
+    with pytest.raises(ValueError, match="> 0"):
+        TemperatureScaled(_SureProbe(), -1.0)
+    wrapped = TemperatureScaled(_SureProbe(), 2.0)
+    assert wrapped.classes_.tolist() == [0, 1]

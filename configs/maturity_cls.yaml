@@ -9,6 +9,7 @@ model:
   c: 1.0
 
 holdout_sources: [kamat_2025]       # ADR 0007: development proxy, never trained on
+calibration: temperature            # temperature | none. T is fitted on gold val only (ADR 0005 B3)
 seed: 42
 
 eval:
