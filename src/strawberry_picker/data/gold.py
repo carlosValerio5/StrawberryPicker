@@ -244,6 +244,7 @@ def build_gold(
         settings = {
             "ratios": dict(ratios),
             "seed": seed,
+            "padding": policy.padding,  # kept for readers that predate crop_policy
             "crop_policy": policy.to_json(),
             "commercial_only": commercial_only,
         }
