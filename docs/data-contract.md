@@ -65,7 +65,7 @@ One row per unique image.
 | `bbox`           | list[float]? | `[x_min, y_min, x_max, y_max]` in pixels. Null means the whole image is one fruit |
 | `group_id`       | string    | split-leakage group, set by the source's `group_by`: `<source>/<image_id>` (default), `<source>`, or `<source>/<folder>` |
 | `ingested_at`    | timestamp | UTC time of the silver build |
-| `reviewed_by`    | string?   | Labelers (`alice+bob`) whose review in `bronze/human_review/` set this row. Null means the source's mapped label. With `needs_review` still true, reviewers disagreed, were unsure, or marked it not a strawberry |
+| `reviewed_by`    | string?   | Labelers (`alice+bob`) whose review in `bronze/human_review/` set this row. Null means the source's mapped label. With `needs_review` still true, reviewers disagreed, were unsure, marked it not a strawberry, or marked a whole-image row as several berries (its source label is kept) |
 
 Multi-fruit images with per-fruit boxes are stored as one row per fruit, sharing
 the same `image_id`. Images dropped from bronze are listed in

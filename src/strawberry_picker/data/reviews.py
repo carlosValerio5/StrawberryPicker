@@ -9,6 +9,9 @@ Rules:
 - a review only changes a row when all its reviewers agree and none said "unsure";
 - "not a strawberry" keeps the row but holds it out of gold. Rows are never deleted, so
   crop ids of the other fruit in the image never shift.
+- "several berries" (``multi_fruit``, for whole-image rows that show a pile) holds the row
+  out of gold too, but keeps the source's label: it may be right for every berry, and a
+  later boxing pass can reuse it.
 """
 
 from __future__ import annotations
@@ -19,11 +22,22 @@ from strawberry_picker.data.bronze import all_pulls
 from strawberry_picker.labeling.tool import LABEL_COLUMNS, current_labels
 
 REVIEW_SOURCE = "human_review"
-RESOLVED_COLUMNS = ("item_id", "maturity", "defects", "not_fruit", "agreed", "reviewed_by")
+RESOLVED_COLUMNS = (
+    "item_id",
+    "maturity",
+    "defects",
+    "not_fruit",
+    "agreed",
+    "reviewed_by",
+    "multi_fruit",
+)
 
 
 def load_reviews() -> pd.DataFrame:
-    """Every label row from every ``human_review`` pull, in pull order."""
+    """Every label row from every ``human_review`` pull, in pull order.
+
+    Files written before a column existed (``multi_fruit``) read it as empty.
+    """
     frames = [
         pd.read_csv(path, dtype=str, keep_default_na=False)
         for pull in all_pulls(REVIEW_SOURCE)
@@ -31,7 +45,7 @@ def load_reviews() -> pd.DataFrame:
     ]
     if not frames:
         return pd.DataFrame(columns=list(LABEL_COLUMNS))
-    return pd.concat(frames, ignore_index=True)[list(LABEL_COLUMNS)]
+    return pd.concat(frames, ignore_index=True).reindex(columns=list(LABEL_COLUMNS), fill_value="")
 
 
 def resolve_reviews(rows: pd.DataFrame) -> pd.DataFrame:
@@ -42,7 +56,7 @@ def resolve_reviews(rows: pd.DataFrame) -> pd.DataFrame:
     resolved = []
     for item_id, votes in by_item.items():
         labels = [label for _, label in votes]
-        verdicts = {(lab.maturity, lab.defects, lab.not_fruit) for lab in labels}
+        verdicts = {(lab.maturity, lab.defects, lab.not_fruit, lab.multi_fruit) for lab in labels}
         agreed = len(verdicts) == 1 and not any(lab.unsure for lab in labels)
         first = labels[0]
         resolved.append(
@@ -53,6 +67,7 @@ def resolve_reviews(rows: pd.DataFrame) -> pd.DataFrame:
                 first.not_fruit,
                 agreed,
                 "+".join(sorted(labeler for labeler, _ in votes)),
+                first.multi_fruit,
             )
         )
     return pd.DataFrame(resolved, columns=list(RESOLVED_COLUMNS))
@@ -72,7 +87,7 @@ def apply_reviews(manifest: pd.DataFrame, resolved: pd.DataFrame) -> pd.DataFram
             continue
         review = reviews.loc[crop_id]
         reviewed_by[i] = review.reviewed_by
-        if not review.agreed:
+        if not review.agreed or review.multi_fruit:
             needs_review[i] = True
         elif review.not_fruit:
             maturity[i], defects[i], needs_review[i] = None, None, True
