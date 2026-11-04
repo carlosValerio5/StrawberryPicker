@@ -24,6 +24,7 @@ from strawberry_picker.audit.contact_sheets import render_sheet
 from strawberry_picker.audit.embeddings import _bbox, audit_label, with_crop_ids
 from strawberry_picker.audit.label_issues import find_label_issues, out_of_fold_probabilities
 from strawberry_picker.audit.probes import learning_curve, leave_one_source_out, source_probe
+from strawberry_picker.data.crops import with_neighbours
 from strawberry_picker.data.readers import Annotation
 
 TASK_MATURITY = "maturity"
@@ -49,8 +50,11 @@ class AuditResult:
 
 
 def audit_frame(manifest: pd.DataFrame) -> pd.DataFrame:
-    """Silver rows a human has not flagged, with one ``label`` and its ``task`` each."""
-    frame = with_crop_ids(manifest)
+    """Silver rows a human has not flagged, with one ``label`` and its ``task`` each.
+
+    ``neighbour_bboxes`` is computed before filtering, so flagged boxes still count.
+    """
+    frame = with_neighbours(with_crop_ids(manifest))
     frame = frame[~frame.needs_review.astype(bool)].copy()
     frame["label"] = [audit_label(m, d) for m, d in zip(frame.maturity, frame.defects, strict=True)]
     frame = frame[frame.label.notna()].copy()
@@ -81,6 +85,7 @@ def _label_issues(
                     "task": task,
                     "given": classes[found.given.to_numpy()],
                     "suggested": classes[found.suggested.to_numpy()],
+                    "predicted": classes[probs[found.index.to_numpy()].argmax(axis=1)],
                     "self_confidence": found.self_confidence.to_numpy(),
                     "is_issue": found.is_issue.to_numpy(),
                 }

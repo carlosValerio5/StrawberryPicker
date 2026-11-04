@@ -42,8 +42,11 @@ src/strawberry_picker/
   data/                    bronze.py (ingest) → silver.py (clean) → gold.py (split/export)
     sources.py             registry parsing; readers.py (imagefolder/YOLO/COCO); dedup.py (dHash)
     reviews.py             human review labels (bronze/human_review) applied to silver on rebuild
+    crops.py               ONLY place for crop geometry: crop_box, CropPolicy (keep/mask/drop/
+                           segment), neighbour overlap (ADR 0008). Crop through crop_fruit
   audit/                   dataset audits → reports/dataset-audit/: contact_sheets.py (raw bronze),
-                           embeddings.py, label_issues.py (confident learning), probes.py, report.py
+                           embeddings.py, label_issues.py (confident learning), probes.py, report.py,
+                           neighbours.py (neighbour overlap per crop, error by overlap)
   labeling/                tool.py (keyboard labeling page), tasks.py, proposals.py (OWLv2 boxes)
   models/                  linear_probe.py (DINOv2 + logistic baseline, run artifacts)
   evaluation/              metrics.py (ADR 0005 numbers), maturity.py, phone_set.py (locked verdict)

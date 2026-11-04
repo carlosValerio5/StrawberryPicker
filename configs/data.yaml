@@ -11,4 +11,8 @@ gold:
   split_ratios: {train: 0.7, val: 0.15, test: 0.15}   # applied per group_id, never per row
   seed: 42
   crop_padding: 0.15               # context around each fruit, as a fraction of its longest side
+  crop_neighbours:                 # other berries inside a crop (ADR 0008, proposed)
+    mode: keep                     # keep | mask | drop | segment; keep = how v0.1 was cut
+    max_overlap: 0.10              # drop: leave out training crops whose neighbours cover more
+    fill: [128, 128, 128]          # mask/segment: neutral grey carries no ripeness colour
   jpeg_quality: 95

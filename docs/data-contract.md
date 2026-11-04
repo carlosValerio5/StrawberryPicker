@@ -82,5 +82,11 @@ The silver columns plus:
 | `split`     | string | `train` / `val` / `test`, assigned per `group_id` |
 | `crop_id`   | string | `<image_id>_<n>`, where `n` is the fruit's position within its image in silver |
 | `crop_path` | string | crop file relative to the dataset folder |
+| `neighbour_bboxes` | list of `[x0, y0, x1, y1]` | the other fruit boxes in the same silver image, including rows this release leaves out ([ADR 0008](decisions/0008-crop-isolation.md)) |
+| `neighbour_overlap` | float | share of the crop those boxes cover, outside the fruit's own box (0–1) |
+| `crop_policy` | string | the `CropPolicy` JSON the crop was cut with; the release also has `crop_policy.json` |
+
+Crops the `drop` policy leaves out are listed, with the same columns, in `dropped.parquet`,
+and counted under `dropped` in `stats.json`.
 
 Rows with `needs_review = true`, or without the task's label, are not in gold.
