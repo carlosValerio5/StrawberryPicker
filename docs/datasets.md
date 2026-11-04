@@ -128,7 +128,7 @@ Overripe and most defect types are the gaps. See
 
 | # | What | Why | Where |
 |---|---|---|---|
-| 1 | **Crop one fruit per image**: a square box padded by 15 % | Classifiers learn one label per image. Detection datasets have several fruits per photo | `gold.crop_box` |
+| 1 | **Crop one fruit per image**: a square box padded by 15 %. Neighbours that fall inside the crop are kept, masked or dropped by `CropPolicy` (ADR 0008, proposed) | Classifiers learn one label per image. Detection datasets have several fruits per photo | `crops.crop_box`, `crops.crop_fruit` |
 | 2 | **Map labels per source**. Ambiguous classes get `needs_review` | Every dataset draws ripeness boundaries differently (Yurdakul's semi-ripe spans 10–90 % red, ours is ≥75 %) | `configs/sources.yaml` |
 | 3 | **Remove exact and near duplicates**: SHA-256 of pixels, then dHash over all 8 flips/rotations | Several sources ship their own augmented copies. Copies split across train and test inflate the scores | `silver.build_silver`, `dedup` |
 | 4 | **Drop synthetic images** | DALL·E images aren't real fruit and would teach the model artifacts | `exclude` globs per source |
