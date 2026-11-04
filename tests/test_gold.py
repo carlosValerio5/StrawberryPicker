@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import pytest
 from PIL import Image
@@ -253,3 +254,83 @@ def test_failed_build_leaves_nothing_behind(silver_rows, tmp_data_dir) -> None:
         build_gold("maturity_cls", "0.1", ratios=ALL_TRAIN, seed=42)
 
     assert list((tmp_data_dir / "gold").iterdir()) == []  # no release, no .partial
+
+
+# --- crop policy (ADR 0008) -------------------------------------------------------------
+
+
+@pytest.fixture
+def crowded_silver(tmp_data_dir) -> list[dict[str, Any]]:
+    """Two touching berries, plus a needs-review box that is still a neighbour."""
+    rows = [
+        _row("crowd", maturity="unripe", bbox=[10.0, 10.0, 40.0, 40.0]),
+        _row("crowd", bbox=[38.0, 10.0, 70.0, 40.0]),
+        _row("crowd", needs_review=True, bbox=[10.0, 45.0, 40.0, 75.0]),
+        _row("solo"),
+    ]
+    _write_silver(tmp_data_dir, rows)
+    return rows
+
+
+def _pixels(path: Path) -> np.ndarray:
+    with Image.open(path) as crop:
+        return np.asarray(crop.convert("RGB"), dtype=int)
+
+
+def test_default_policy_records_overlap_and_policy(crowded_silver) -> None:
+    from strawberry_picker.data.crops import LEGACY_POLICY, CropPolicy
+
+    out = build_gold("maturity_cls", "0.1", ratios=ALL_TRAIN, seed=42)
+
+    manifest = pd.read_parquet(out / "manifest.parquet").set_index("crop_id")
+    # crop_box → (6, 6, 45, 45); the neighbour shows in columns 40-45 → 5 × 30 / 39².
+    assert manifest.loc["crowd_0", "neighbour_overlap"] == pytest.approx(150 / 39**2)
+    assert manifest.loc["solo_0", "neighbour_overlap"] == 0.0
+    assert len(manifest.loc["crowd_0", "neighbour_bboxes"]) == 2  # incl. the review box
+    assert CropPolicy.from_json(manifest.loc["crowd_0", "crop_policy"]) == LEGACY_POLICY
+    assert CropPolicy.from_json((out / "crop_policy.json").read_text()) == LEGACY_POLICY
+    assert json.loads((out / "stats.json").read_text())["dropped"] == {"total": 0}
+
+
+def test_mask_policy_greys_out_the_neighbour(crowded_silver) -> None:
+    from strawberry_picker.data.crops import CropPolicy
+
+    policy = CropPolicy(padding=0.15, neighbours="mask", fill=(0, 0, 255))
+    kept = build_gold("maturity_cls", "0.1", ratios=ALL_TRAIN, seed=42)
+    masked = build_gold("maturity_cls", "0.2", ratios=ALL_TRAIN, seed=42, policy=policy)
+
+    before = _pixels(kept / "train" / "unripe" / "crowd_0.jpg")
+    after = _pixels(masked / "train" / "unripe" / "crowd_0.jpg")
+    # Crop columns ≥ 40 - 6 = 34 are the neighbour's only; columns < 34 are target/context.
+    # JPEG blurs a couple of pixels across the edge, so sample away from it.
+    assert np.abs(after[6:32, 37:] - [0, 0, 255]).max() < 30
+    assert np.abs(after[:, :24] - before[:, :24]).max() < 15
+    assert CropPolicy.from_json((masked / "crop_policy.json").read_text()) == policy
+
+
+def test_drop_policy_reports_every_dropped_crop(crowded_silver) -> None:
+    from strawberry_picker.data.crops import CropPolicy
+
+    policy = CropPolicy(neighbours="drop", max_neighbour_overlap=0.05)
+    out = build_gold("maturity_cls", "0.3", ratios=ALL_TRAIN, seed=42, policy=policy)
+
+    manifest = pd.read_parquet(out / "manifest.parquet")
+    assert set(manifest.crop_id) == {"solo_0"}
+    dropped = pd.read_parquet(out / "dropped.parquet")
+    assert set(dropped.crop_id) == {"crowd_0", "crowd_1"}
+    assert (dropped.neighbour_overlap > 0.05).all()
+    assert not (out / "train" / "unripe" / "crowd_0.jpg").exists()
+    stats = json.loads((out / "stats.json").read_text())
+    assert stats["dropped"] == {"total": 2, "train": 2}
+    assert stats["train"]["total"] == 1
+    card = (out / "DATASET_CARD.md").read_text()
+    assert "Dropped crops" in card and "drop" in card
+
+
+def test_padding_argument_still_works_without_a_policy(crowded_silver) -> None:
+    from strawberry_picker.data.crops import CropPolicy
+
+    out = build_gold("maturity_cls", "0.4", ratios=ALL_TRAIN, seed=42, padding=0.0)
+    assert CropPolicy.from_json((out / "crop_policy.json").read_text()) == CropPolicy(padding=0.0)
+    with Image.open(out / "train" / "unripe" / "crowd_0.jpg") as crop:
+        assert crop.size == (30, 30)
