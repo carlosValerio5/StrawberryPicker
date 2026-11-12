@@ -16,6 +16,7 @@ own augmented copies.
 | [`strawberry_ds_2023`](https://data.mendeley.com/datasets/z6dtfdpzz8/1) | 6 stages → unripe / ripe | 247 images, multi-fruit | Egypt greenhouse, 3840×2160 | CC BY 4.0 | **enabled** (audited) |
 | [`kamat_2025`](https://data.mendeley.com/datasets/zysvgmxcyz/1) | unripe 114+238 · ripe 189 · rotten 170 | ~711 strawberry samples | India, field, **pastel backgrounds** | CC BY 4.0 | **enabled** (audited; 43 % of images missing from the deposit) |
 | [`fresh_rotten_fruits_2022`](https://data.mendeley.com/datasets/bdd69gyhv8) | no defects 200 · rot 200 | 512×512 | shops and fields, DSLR | CC BY 4.0 | **enabled** (audited) |
+| [`owner_phone_2026`](datasheets/owner_phone_2026.md) | overripe 94 · defective 57 (review) | 151 photos, 279 boxes | owner's iPhone, hand-held, HEIC | project-owned | **enabled** (defects pending review) |
 | [`strawberry_disease_2025`](https://data.mendeley.com/datasets/k2ptxmfjhj/1) | mold, rot, healthy (fruit classes only) | 2,459 originals in 8 classes | field, COCO polygons, **1,018 DALL·E images** | **CC BY-NC 4.0** | **enabled**, test + valid only (audited) |
 
 "Needs verify" means the label mapping is written, but the source stays `enabled: false`
@@ -160,6 +161,30 @@ the defect head is an open taxonomy question.
 
 The OWLv2 crops are kept anyway: they remove the pile-label errors (46 % of Fresh/Rotten
 images held out).
+
+### Part 4: owner phone photos (2026-11-12)
+
+The project owner's own iPhone photos, one session on 2026-11-10. Datasheet:
+[`datasheets/owner_phone_2026.md`](datasheets/owner_phone_2026.md).
+
+- **Folders:** `Fresas/overripe` 94 photos, `Fresas/defective ` 57 photos (trailing space
+  in the name).
+- **Mapping:** overripe → `overripe` (owner-sorted, defects not assessed). Defective →
+  `needs_review`. The owner labels maturity and each defect per berry, in
+  `reports/labeling/needs-review_owner_phone_2026.csv` (58 crops).
+- **Boxes:** OWLv2 (ADR [0008](decisions/0008-box-proposals-for-image-labels.md), min score
+  0.3) found 279 boxes on 151 photos.
+- **Silver:** 147 rows. 89 overripe ready, 2 overripe held as piles, 56 defective pending
+  review. 3 exact duplicates were rejected (IMG_1622, IMG_1638, IMG_1639; the defective
+  copy is kept, so the owner's review sets both maturity and defects). 1 near-duplicate
+  was rejected (defective IMG_1486 ≈ IMG_1485).
+- **Caveats:** one session, so in-distribution scores are optimistic (use the Kamat
+  proxy). One labeler. No unripe or ripe photos. Training source only, not the locked
+  phone test set (ADR [0007](decisions/0007-lean-phone-test-set.md)).
+
+Findings #17 and #18 showed that overripe from Fresh/Rotten and from Kamat don't transfer
+to each other. This source adds a third overripe setting, hand-held phone photos like our
+target use. It is training data, so it can't give an ADR 0005 verdict.
 
 ## Expected class balance after mapping (approximate)
 
