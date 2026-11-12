@@ -186,6 +186,43 @@ Findings #17 and #18 showed that overripe from Fresh/Rotten and from Kamat don't
 to each other. This source adds a third overripe setting, hand-held phone photos like our
 target use. It is training data, so it can't give an ADR 0005 verdict.
 
+**Finding #19: the owner's photos teach a crop-size shortcut, not ripeness.** Median box
+side in gold `maturity_cls_v0.5`:
+
+| Class | Source | Median side |
+|---|---|---|
+| unripe (training) | Riseholme | 64 px |
+| unripe (training) | Strawberry-DS | 174 px |
+| overripe (training) | Fresh/Rotten | 1,374 px |
+| overripe (training) | owner phone | 2,047 px |
+| unripe (proxy, never trained on) | Kamat | 1,924 px |
+
+Training unripe crops are small and training overripe crops are large, so size separates
+the classes. Kamat's unripe crops are large, so a probe trained with the owner's overripe
+photos calls most Kamat unripe berries overripe.
+
+Selection rule, fixed before the sweeps: highest Kamat proxy QWK, ties broken by the
+lowest per-class recall. Sweep on the Kamat proxy (gold v0.5, DINOv2-small linear probe):
+
+| Variant | Proxy QWK | Recall unripe / ripe / overripe |
+|---|---|---|
+| Owner photos held out (**chosen**) | 0.424 | 0.72 / 0.85 / 0.15 |
+| All sources | -0.069 | 0.29 / 0.58 / 0.26 |
+| All, C=0.1 | 0.199 | 0.56 / 0.57 / 0.23 |
+| All, owner weight 0.3, C=0.01 | 0.226 | 0.61 / 0.60 / 0.23 |
+| Crops downsampled to 96 px, all sources | 0.121 | 0.51 / 0.54 / 0.33 |
+| Crops downsampled to 96 px, owner held out | 0.386 | 0.72 / 0.72 / 0.24 |
+
+- Before the owner's review labels (gold v0.4), the all-sources run had proxy QWK 0.000.
+  Adding 19 owner "ripe" berries did not remove the shortcut.
+- Downsampling every crop (48, 64 or 96 px) only partly helped.
+
+**Consequence for v1:** the maturity probe holds `owner_phone_2026` out and scores it as a
+second proxy (real phone photos, never trained on). The defect head does train on it.
+
+**Fix for v1.1:** unripe and ripe photos from the same phone setting, and/or size-matched
+crops in training and inference.
+
 ## Expected class balance after mapping (approximate)
 
 | unripe | ripe | overripe | rot / mold | bruise, deformed, pest, mechanical |

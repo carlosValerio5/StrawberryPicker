@@ -22,6 +22,16 @@ cp .env.example .env
 make check        # lint + tests
 ```
 
+### Run the v1 model
+
+```bash
+uv run python scripts/predict.py <photo or folder> --out preds.json --annotate
+```
+
+Needs `make setup-ml`. The first run downloads the weights. Results are development
+numbers only. See [docs/model-card-v1.md](docs/model-card-v1.md) for what the model does,
+its results and its limitations.
+
 ## Data (medallion layout)
 
 Data is **never committed**. The folders and their READMEs are tracked so
