@@ -43,5 +43,7 @@ Check licenses before adopting. Code and weights can have different licenses.
 
 1. Ingest 1–2 public strawberry ripeness datasets into bronze, then build silver and `maturity_cls_v0.1` gold.
 2. Zero-shot SigLIP baseline, then a DINOv2 linear probe. Report macro-F1 and the confusion matrix.
-3. Add the defect head once defect labels exist.
+3. Add the defect head once defect labels exist. Baseline: one DINOv2 linear probe per defect
+   with val-chosen thresholds (ADR [0010](decisions/0010-defect-head-baseline.md),
+   `scripts/train_quality.py`). Only `rot` and `mold` have data so far.
 4. Add detection for multi-fruit / in-field images.
