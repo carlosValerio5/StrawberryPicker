@@ -1,4 +1,4 @@
-"""Run trained models on new images and return maturity (+ defects and grade, later) per berry."""
+"""Run trained models on new images and return maturity, defects and grade per berry."""
 
 from strawberry_picker.inference.pipeline import (
     BerryPrediction,
@@ -12,7 +12,9 @@ from strawberry_picker.inference.pipeline import (
     load_predictor,
     predict_image,
     predict_paths,
-    resolve_padding,
+    quality_head,
+    resolve_policy,
+    run_policy,
 )
 
 __all__ = [
@@ -27,5 +29,7 @@ __all__ = [
     "load_predictor",
     "predict_image",
     "predict_paths",
-    "resolve_padding",
+    "quality_head",
+    "resolve_policy",
+    "run_policy",
 ]

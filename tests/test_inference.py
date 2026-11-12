@@ -10,6 +10,7 @@ import pytest
 import yaml
 from PIL import Image
 
+from strawberry_picker.data.crops import LEGACY_POLICY, CropPolicy, NeighbourMode
 from strawberry_picker.inference import (
     BerryPrediction,
     LockedSetError,
@@ -19,10 +20,14 @@ from strawberry_picker.inference import (
     image_paths,
     load_image,
     load_predictor,
+    pipeline,
     predict_image,
     predict_paths,
-    resolve_padding,
+    resolve_policy,
 )
+from strawberry_picker.models.calibration import TemperatureScaled, apply_temperature
+from strawberry_picker.models.defect_probe import DefectHead
+from strawberry_picker.models.linear_probe import predict_all_classes, save_run
 
 CLASSES = ("unripe", "ripe", "overripe")
 
@@ -94,22 +99,79 @@ def test_predict_image_crops_with_the_given_padding() -> None:
     assert seen == [(60, 60), (60, 60)]  # 40 px box × (1 + 2 × 0.25)
 
 
-def test_predict_image_custom_crop_fn_replaces_the_default() -> None:
-    calls: list[tuple] = []
+def adjacent_photo_detector(image: Image.Image) -> tuple[np.ndarray, np.ndarray]:
+    """Two touching berries: the green box's padded crop reaches into the red one."""
+    return np.array([[10, 30, 50, 70], [55, 30, 95, 70]], dtype=float), np.array([0.9, 0.8])
 
-    def crop_fn(bbox, width, height):
-        calls.append((tuple(bbox), width, height))
-        return (0, 0, 10, 10)
 
+def adjacent_photo() -> Image.Image:
+    image = Image.new("RGB", (200, 100), (128, 128, 128))
+    image.paste((0, 200, 0), (10, 30, 50, 70))
+    image.paste((255, 0, 0), (55, 30, 95, 70))
+    return image
+
+
+def test_predict_image_cuts_crops_with_the_policy_and_masks_neighbours() -> None:
+    seen: list[Image.Image] = []
+
+    def embed(crops: list[Image.Image]) -> np.ndarray:
+        seen.extend(crops)
+        return red_embed(crops)
+
+    # padding 0.5: the green crop is image[10:90, 0:80], the red one image[10:90, 35:115]
+    policy = CropPolicy(padding=0.5, neighbours=NeighbourMode.MASK, fill=(0, 0, 0))
     predict_image(
-        two_berry_photo(),
-        detect_fn=fake_detect,
-        embed_fn=red_embed,
+        adjacent_photo(),
+        detect_fn=adjacent_photo_detector,
+        embed_fn=embed,
         probe=FakeProbe(),
         classes=CLASSES,
-        crop_fn=crop_fn,
+        policy=policy,
     )
-    assert calls == [((130, 30, 170, 70), 200, 100), ((10, 30, 50, 70), 200, 100)]
+    green_crop, red_crop = seen
+    assert green_crop.getpixel((30, 40)) == (0, 200, 0)  # own berry kept
+    assert green_crop.getpixel((75, 40)) == (0, 0, 0)  # red neighbour painted over
+    assert red_crop.getpixel((40, 40)) == (255, 0, 0)
+    assert red_crop.getpixel((5, 40)) == (0, 0, 0)  # green neighbour painted over
+
+
+def test_predict_image_keep_policy_leaves_neighbours_in_the_crop() -> None:
+    seen: list[Image.Image] = []
+
+    def embed(crops: list[Image.Image]) -> np.ndarray:
+        seen.extend(crops)
+        return red_embed(crops)
+
+    predict_image(
+        adjacent_photo(),
+        detect_fn=adjacent_photo_detector,
+        embed_fn=embed,
+        probe=FakeProbe(),
+        classes=CLASSES,
+        policy=CropPolicy(padding=0.5),
+    )
+    assert seen[0].getpixel((75, 40)) == (255, 0, 0)
+
+
+def test_predict_image_drop_policy_crops_every_berry_like_keep() -> None:
+    crops: dict[str, list[bytes]] = {}
+    for mode in (NeighbourMode.KEEP, NeighbourMode.DROP):
+        out: list[Image.Image] = []
+
+        def embed(images, out=out):
+            out.extend(images)
+            return red_embed(images)
+
+        predict_image(
+            adjacent_photo(),
+            detect_fn=adjacent_photo_detector,
+            embed_fn=embed,
+            probe=FakeProbe(),
+            classes=CLASSES,
+            policy=CropPolicy(padding=0.5, neighbours=mode),
+        )
+        crops[mode.value] = [c.tobytes() for c in out]
+    assert crops["drop"] == crops["keep"] and len(crops["keep"]) == 2
 
 
 def test_predict_image_no_detections_skips_embedding() -> None:
@@ -171,11 +233,25 @@ def test_load_image_applies_exif_orientation_and_rgb(tmp_path: Path) -> None:
     assert load_image(png).mode == "RGB"
 
 
-@pytest.mark.parametrize("name", ["IMG_0001.HEIC", "photo.heif"])
-def test_load_image_heic_gives_a_clear_error(tmp_path: Path, name: str) -> None:
-    path = tmp_path / name
+def test_load_image_decodes_heic_through_open_rgb(tmp_path: Path, monkeypatch) -> None:
+    """HEIC goes through the shared decoder, like every other format (no rejection)."""
+    decoded: list[Path] = []
+
+    def fake_open_rgb(path: Path) -> Image.Image:
+        decoded.append(Path(path))
+        return Image.new("RGB", (4, 3), (1, 2, 3))
+
+    monkeypatch.setattr(pipeline, "open_rgb", fake_open_rgb)
+    path = tmp_path / "IMG_0001.HEIC"
+    path.write_bytes(b"not decoded here")
+    assert load_image(path).size == (4, 3)
+    assert decoded == [path]
+
+
+def test_load_image_corrupt_heic_gives_a_clear_error(tmp_path: Path) -> None:
+    path = tmp_path / "IMG_0002.HEIC"
     path.write_bytes(b"\x00\x00\x00\x18ftypheic")
-    with pytest.raises(UnsupportedImageError, match="JPEG"):
+    with pytest.raises(UnsupportedImageError, match="IMG_0002.HEIC"):
         load_image(path)
 
 
@@ -225,14 +301,18 @@ def write_run(run_dir: Path, config: dict) -> Path:
     return run_dir
 
 
-def test_resolve_padding_prefers_run_config_then_gold_card(tmp_data_dir: Path) -> None:
-    assert resolve_padding({"crop_padding": 0.05, "dataset": "maturity_cls_v0.1"}) == 0.05
-    gold = tmp_data_dir / "gold" / "maturity_cls_v0.1"
+def test_resolve_policy_prefers_run_config_then_gold_release(tmp_data_dir: Path) -> None:
+    explicit = {"crop_policy": {"padding": 0.05, "neighbours": "mask"}}
+    assert resolve_policy(explicit) == CropPolicy(padding=0.05, neighbours=NeighbourMode.MASK)
+    gold = tmp_data_dir / "gold" / "maturity_cls_v0.2"
     gold.mkdir(parents=True)
-    (gold / "DATASET_CARD.md").write_text("## Build settings\n\n- **padding**: `0.2`\n")
-    assert resolve_padding({"dataset": "maturity_cls_v0.1"}) == 0.2
-    with pytest.raises(ValueError, match="--padding"):
-        resolve_padding({"dataset": "maturity_cls_v9.9"})
+    (gold / "crop_policy.json").write_text(CropPolicy(padding=0.2).to_json())
+    assert resolve_policy({"dataset": "maturity_cls_v0.2"}).padding == 0.2
+    # a release from before ADR 0011 has no policy file: it was cut with the legacy policy
+    old = tmp_data_dir / "gold" / "maturity_cls_v0.1"
+    old.mkdir(parents=True)
+    assert resolve_policy({"dataset": "maturity_cls_v0.1"}) == LEGACY_POLICY
+    assert isinstance(resolve_policy({}), CropPolicy)  # no run, no release: configs/data.yaml
 
 
 def test_load_predictor_reads_the_run(tmp_path: Path, tmp_data_dir: Path) -> None:
@@ -247,7 +327,8 @@ def test_load_predictor_reads_the_run(tmp_path: Path, tmp_data_dir: Path) -> Non
         return red_embed
 
     predictor = load_predictor(run, detect_fn=fake_detect, embed_factory=embed_factory)
-    assert built == ["toy"] and predictor.classes == CLASSES and predictor.padding == 0.0
+    assert built == ["toy"] and predictor.classes == CLASSES
+    assert predictor.policy.padding == 0.0
     assert [p.maturity for p in predictor.predict(two_berry_photo())] == ["ripe", "unripe"]
 
 
@@ -265,7 +346,9 @@ def test_predict_paths_reports_errors_per_image(tmp_path: Path, tmp_data_dir: Pa
 
     records = predict_paths(image_paths([photo.parent]), predictor, annotate_dir=annotated)
     by_name = {Path(r["image"]).name: r for r in records}
-    assert by_name["iphone.heic"]["berries"] == [] and "JPEG" in by_name["iphone.heic"]["error"]
+    assert (
+        by_name["iphone.heic"]["berries"] == [] and "iphone.heic" in by_name["iphone.heic"]["error"]
+    )
     berries = by_name["punnet.jpg"]["berries"]
     assert [b["maturity"] for b in berries] == ["ripe", "unripe"]
     assert (annotated / "punnet.jpg").exists() and not (annotated / "iphone.jpg").exists()
@@ -280,3 +363,113 @@ def test_annotate_draws_boxes_without_touching_the_input() -> None:
     )
     out = annotate(photo, [prediction])
     assert photo.tobytes() == before and out.size == photo.size and out.tobytes() != before
+
+
+def test_load_predictor_applies_the_run_calibration(tmp_path: Path, tmp_data_dir: Path) -> None:
+    """calibration.json (ADR 0005 §B3) makes the loaded probe temperature-scaled."""
+    run = write_run(
+        tmp_path / "run",
+        {"classes": list(CLASSES), "model": {"backbone": "toy"}, "crop_policy": {"padding": 0.0}},
+    )
+    (run / "calibration.json").write_text(json.dumps({"method": "temperature", "temperature": 4.0}))
+    predictor = load_predictor(run, detect_fn=fake_detect, embed_factory=lambda _: red_embed)
+    assert isinstance(predictor.probe, TemperatureScaled) and predictor.probe.temperature == 4.0
+
+    features = np.array([[0.9]])
+    raw = FakeProbe().predict_proba(features)
+    expected = apply_temperature(raw, 4.0)
+    got = predict_all_classes(predictor.probe, features, len(CLASSES))
+    assert got[0, 1] == pytest.approx(expected[0, 1]) and 0.5 < got[0, 1] < 0.9  # softened
+
+
+def test_load_predictor_without_calibration_file_keeps_raw_probabilities(
+    tmp_path: Path, tmp_data_dir: Path
+) -> None:
+    run = write_run(
+        tmp_path / "run",
+        {"classes": list(CLASSES), "model": {"backbone": "toy"}, "crop_policy": {"padding": 0.0}},
+    )
+    predictor = load_predictor(run, detect_fn=fake_detect, embed_factory=lambda _: red_embed)
+    assert not isinstance(predictor.probe, TemperatureScaled)
+
+
+def fake_defect_head(tmp_path: Path, *, backbone: str = "toy", padding: float = 0.0) -> Path:
+    """A real ``DefectHead`` saved the way train_quality.py saves it, around the fake probe."""
+    head = DefectHead(
+        defects=("rot",),
+        probes={"rot": FakeProbe()},
+        thresholds={"rot": 0.5},
+    )
+    config = {
+        "task": "quality_cls",
+        "defects": ["rot"],
+        "model": {"backbone": backbone},
+        "crop_policy": {"padding": padding},
+    }
+    return save_run(tmp_path / "models" / "quality_cls" / "20261112T000000Z", head, config, {})
+
+
+def test_load_predictor_adds_defects_and_grade_from_the_quality_run(
+    tmp_path: Path, tmp_data_dir: Path
+) -> None:
+    run = write_run(
+        tmp_path / "run",
+        {"classes": list(CLASSES), "model": {"backbone": "toy"}, "crop_policy": {"padding": 0.0}},
+    )
+    quality = fake_defect_head(tmp_path)
+    predictor = load_predictor(
+        run, quality_run=quality, detect_fn=fake_detect, embed_factory=lambda _: red_embed
+    )
+    berries = predictor.predict(two_berry_photo())
+    # the red berry is ripe and rotten (reject); the green one is unripe and clean (premium)
+    assert [(b.extras["defects"], b.extras["grade"]) for b in berries] == [
+        (["rot"], "reject"),
+        ([], "premium"),
+    ]
+    record = berries[0].to_dict()
+    assert record["maturity"] == "ripe" and record["grade"] == "reject"
+    json.dumps(record)
+
+
+def test_load_predictor_without_quality_run_adds_no_defect_fields(
+    tmp_path: Path, tmp_data_dir: Path
+) -> None:
+    run = write_run(
+        tmp_path / "run",
+        {"classes": list(CLASSES), "model": {"backbone": "toy"}, "crop_policy": {"padding": 0.0}},
+    )
+    predictor = load_predictor(run, detect_fn=fake_detect, embed_factory=lambda _: red_embed)
+    assert all(b.extras == {} for b in predictor.predict(two_berry_photo()))
+
+
+def test_quality_run_must_share_the_maturity_backbone_and_crops(
+    tmp_path: Path, tmp_data_dir: Path
+) -> None:
+    run = write_run(
+        tmp_path / "run",
+        {"classes": list(CLASSES), "model": {"backbone": "toy"}, "crop_policy": {"padding": 0.0}},
+    )
+    other_backbone = fake_defect_head(tmp_path / "a", backbone="other")
+    with pytest.raises(ValueError, match="backbone"):
+        load_predictor(
+            run,
+            quality_run=other_backbone,
+            detect_fn=fake_detect,
+            embed_factory=lambda _: red_embed,
+        )
+    other_crops = fake_defect_head(tmp_path / "b", padding=0.2)
+    with pytest.raises(ValueError, match="crop policy"):
+        load_predictor(
+            run, quality_run=other_crops, detect_fn=fake_detect, embed_factory=lambda _: red_embed
+        )
+
+
+def test_legacy_crop_padding_in_run_config_is_still_honoured(
+    tmp_path: Path, tmp_data_dir: Path
+) -> None:
+    run = write_run(
+        tmp_path / "run",
+        {"classes": list(CLASSES), "model": {"backbone": "toy"}, "crop_padding": 0.3},
+    )
+    predictor = load_predictor(run, detect_fn=fake_detect, embed_factory=lambda _: red_embed)
+    assert predictor.policy.padding == 0.3

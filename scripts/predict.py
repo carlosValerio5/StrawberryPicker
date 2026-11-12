@@ -1,9 +1,15 @@
-"""Per-berry maturity for new photos: uv run python scripts/predict.py <image or folder>...
+"""Per-berry maturity, defects and grade for new photos.
 
-Detects every berry (OWLv2, ADR 0009), crops it the way the run's gold release did, and
-classifies the crop. Uses the newest models/maturity_cls/* run unless --run says otherwise.
-Prints one JSON record per image, or writes them to --out. --annotate also saves each photo
-with boxes and labels to reports/predictions/<run_id>/.
+Usage: uv run python scripts/predict.py <image or folder>...
+
+Detects every berry (OWLv2, ADR 0009), crops it under the run's crop policy (ADR 0011), and
+classifies the crop (maturity, calibrated per ADR 0005). The defect head (ADR 0010) adds
+``defects`` and ``grade`` to every berry from the same embeddings.
+
+Uses the newest models/maturity_cls/* run unless --run says otherwise, and the newest
+models/quality_cls/* run as the defect head unless --quality-run or --no-quality says
+otherwise. Prints one JSON record per image, or writes them to --out. --annotate also saves
+each photo with boxes and labels to reports/predictions/<run_id>/.
 Refuses data/bronze/phone_testset: the locked set is read only by evaluate_phone_set.py.
 """
 
@@ -23,11 +29,21 @@ from strawberry_picker.inference import (
 from strawberry_picker.paths import models_dir, reports_dir
 
 
+def newest_run(task: str) -> Path | None:
+    """The newest run folder under ``models/<task>/`` (run ids are UTC timestamps)."""
+    runs = sorted((models_dir() / task).glob("*/probe.joblib"))
+    return runs[-1].parent if runs else None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("inputs", nargs="+", type=Path, help="images and/or folders of images")
-    parser.add_argument("--run", type=Path, help="model run folder (default: newest)")
-    parser.add_argument("--padding", type=float, help="crop padding (default: the run's gold)")
+    parser.add_argument("--run", type=Path, help="maturity run folder (default: newest)")
+    parser.add_argument(
+        "--quality-run", type=Path, help="defect run folder (default: newest quality_cls run)"
+    )
+    parser.add_argument("--no-quality", action="store_true", help="skip the defect head")
+    parser.add_argument("--padding", type=float, help="crop padding (default: the run's policy)")
     parser.add_argument("--min-score", type=float, default=0.2, help="detector score threshold")
     parser.add_argument("--out", type=Path, help="write JSON here instead of stdout")
     parser.add_argument("--annotate", action="store_true", help="save annotated copies")
@@ -40,15 +56,29 @@ def main() -> None:
         parser.error(str(error))
     if not paths:
         parser.error("no images found")
-    runs = sorted((models_dir() / "maturity_cls").glob("*/probe.joblib"))
-    run = args.run or (runs[-1].parent if runs else None)
+    run = args.run or newest_run("maturity_cls")
     if run is None:
         parser.error("no model run yet: uv run python scripts/train_maturity.py")
+    quality_run = None
+    if not args.no_quality:
+        quality_run = args.quality_run or newest_run("quality_cls")
 
-    predictor = load_predictor(run, padding=args.padding, min_score=args.min_score)
+    try:
+        predictor = load_predictor(
+            run, quality_run=quality_run, padding=args.padding, min_score=args.min_score
+        )
+    except ValueError as error:
+        parser.error(str(error))
     annotate_dir = reports_dir() / "predictions" / run.name if args.annotate else None
     records = predict_paths(paths, predictor, annotate_dir=annotate_dir)
-    text = json.dumps({"run": str(run), "images": records}, indent=2)
+    text = json.dumps(
+        {
+            "run": str(run),
+            "quality_run": str(quality_run) if quality_run else None,
+            "images": records,
+        },
+        indent=2,
+    )
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(text + "\n")

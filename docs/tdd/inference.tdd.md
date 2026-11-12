@@ -44,3 +44,27 @@
 - `train_maturity.py` doesn't write `crop_padding` into the run config yet, so older runs
   fall back to their gold dataset card. That's left for the crop-policy branch, which owns
   crop settings.
+
+## Round 2: HEIC, crop policy, calibrated probe, defect head
+
+Tests written first (RED: import error for `resolve_policy`, then the new behaviours failing),
+then the code (GREEN). All tests use fakes; none reads real data or weights.
+
+| Behavior | Test |
+|---|---|
+| HEIC goes through `images.open_rgb` (no rejection); a corrupt HEIC gives a per-image error | `test_load_image_decodes_heic_through_open_rgb`, `test_load_image_corrupt_heic_gives_a_clear_error` |
+| Crops are cut by `crop_fruit` under the run's policy; `mask` paints the other kept berries, not the target | `test_predict_image_cuts_crops_with_the_policy_and_masks_neighbours` |
+| `keep` leaves neighbours in; `drop` crops every berry like `keep` at inference | `test_predict_image_keep_policy_leaves_neighbours_in_the_crop`, `test_predict_image_drop_policy_crops_every_berry_like_keep` |
+| Policy resolution: run config, then gold `crop_policy.json`, then legacy policy for pre-ADR 0011 releases | `test_resolve_policy_prefers_run_config_then_gold_release` |
+| Legacy `crop_padding` in an old run config is still honoured | `test_legacy_crop_padding_in_run_config_is_still_honoured` |
+| `calibration.json` gives a temperature-scaled probe and softened probabilities; no file, raw probabilities | `test_load_predictor_applies_the_run_calibration`, `test_load_predictor_without_calibration_file_keeps_raw_probabilities` |
+| Defect head from a saved quality run adds `defects` and `grade` to every berry | `test_load_predictor_adds_defects_and_grade_from_the_quality_run` |
+| No quality run: no defect fields | `test_load_predictor_without_quality_run_adds_no_defect_fields` |
+| A quality run on another backbone or crop policy is refused | `test_quality_run_must_share_the_maturity_backbone_and_crops` |
+
+Not done in this round:
+- No run on real photos. The OWLv2 and DINOv2 loaders were exercised only by loading an
+  existing maturity run and a non-image file; no detector or classifier output was checked.
+- No quality run exists yet in `models/quality_cls/`, so the defect head is tested with a
+  fake probe only. `scripts/predict.py` picks up the newest one automatically once it exists.
+- The detector score threshold (0.2) and detector quality still have no measurement (ADR 0009).

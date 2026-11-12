@@ -1,44 +1,53 @@
-"""Photo → one prediction per berry: detect, crop the way gold does, embed, classify.
+"""Photo → one prediction per berry: detect, crop under the run's policy, embed, classify.
 
 Every model is injected, as in ``labeling/proposals.py``: tests pass fakes, real use passes
 ``owlv2_detector`` (ADR 0009) and ``dinov2_embedder``. The classifier only ever saw one-berry
 crops, so a whole multi-berry photo must never reach it directly; this module is the only
 supported way to run a maturity run on a new photo.
 
-Extension point: ``heads`` are callables ``(embeddings) -> [dict per berry]``. A defect head
-plugs in here and adds ``defects``/``grade`` to every berry, reusing the same embeddings.
+Crops are cut by ``data.crops.crop_fruit`` under the crop policy the run was trained with
+(ADR 0011), with the other detected berries of the same photo as neighbours.
+
+Extension point: ``heads`` are callables ``(embeddings) -> [dict per berry]``. The defect
+head (ADR 0010) plugs in through :func:`quality_head` and adds ``defects``/``grade`` to every
+berry, reusing the same embeddings.
 """
 
 from __future__ import annotations
 
-import re
 from collections.abc import Callable, Iterable, Sequence
-from dataclasses import dataclass, field
-from functools import partial
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageDraw, UnidentifiedImageError
 
 from strawberry_picker.config import load_config
-from strawberry_picker.data.gold import crop_box, dataset_dir
+from strawberry_picker.data.crops import (
+    CropPolicy,
+    NeighbourMode,
+    SegmentFn,
+    crop_fruit,
+    resolve_policy,
+)
 from strawberry_picker.data.readers import IMAGE_SUFFIXES
+from strawberry_picker.images import open_rgb
 from strawberry_picker.labeling.proposals import DetectFn, non_max_suppression
+from strawberry_picker.models.defect_probe import DefectHead
 from strawberry_picker.models.linear_probe import load_probe, predict_all_classes
 from strawberry_picker.paths import Layer, layer_dir
+from strawberry_picker.schema import grade_from_defects
 
 BBox = tuple[float, float, float, float]
 EmbedFn = Callable[[list[Image.Image]], np.ndarray]
-CropFn = Callable[[BBox, int, int], tuple[int, int, int, int]]
 HeadFn = Callable[[np.ndarray], Sequence[dict[str, Any]]]
 
-HEIC_SUFFIXES = frozenset({".heic", ".heif"})
 LOCKED_SOURCE = "phone_testset"  # AGENTS.md rule 6: read only by evaluate_phone_set.py
 
 
 class UnsupportedImageError(ValueError):
-    """The file can't be decoded (HEIC, corrupt, not an image)."""
+    """The file can't be decoded (corrupt, truncated, not an image)."""
 
 
 class LockedSetError(PermissionError):
@@ -64,16 +73,10 @@ class BerryPrediction:
 
 
 def load_image(path: Path) -> Image.Image:
-    """Decode like silver does: EXIF orientation applied, then RGB."""
+    """Decode like silver does (EXIF orientation, then RGB), HEIC included."""
     path = Path(path)
-    if path.suffix.lower() in HEIC_SUFFIXES:
-        raise UnsupportedImageError(
-            f"{path.name}: HEIC can't be read. Export the photo as JPEG, or set the iPhone "
-            "camera to 'Most Compatible' (Settings > Camera > Formats)."
-        )
     try:
-        with Image.open(path) as raw:
-            return ImageOps.exif_transpose(raw).convert("RGB")
+        return open_rgb(path)
     except (UnidentifiedImageError, OSError) as error:
         raise UnsupportedImageError(f"{path.name}: not a readable image ({error})") from error
 
@@ -95,12 +98,13 @@ def ensure_not_locked(paths: Iterable[Path]) -> None:
 
 
 def image_paths(inputs: Iterable[Path]) -> list[Path]:
-    """Images named directly, plus every image under named folders (HEIC kept, to report)."""
-    suffixes = IMAGE_SUFFIXES | HEIC_SUFFIXES
+    """Images named directly, plus every image under named folders (HEIC included)."""
     found: list[Path] = []
     for item in map(Path, inputs):
         if item.is_dir():
-            found += [p for p in item.rglob("*") if p.is_file() and p.suffix.lower() in suffixes]
+            found += [
+                p for p in item.rglob("*") if p.is_file() and p.suffix.lower() in IMAGE_SUFFIXES
+            ]
         elif item.is_file():
             found.append(item)
         else:
@@ -115,18 +119,21 @@ def predict_image(
     embed_fn: EmbedFn,
     probe: Any,
     classes: Sequence[str],
-    crop_fn: CropFn | None = None,
+    policy: CropPolicy | None = None,
     padding: float = 0.15,
     min_score: float = 0.2,
     iou: float = 0.5,
     heads: Sequence[HeadFn] = (),
+    segment_fn: SegmentFn | None = None,
 ) -> list[BerryPrediction]:
     """One prediction per detected berry, highest detector score first.
 
-    ``crop_fn`` defaults to gold's padded square (``padding`` must match the training crops).
+    Each berry is cropped by ``crop_fruit`` under ``policy`` (default: padded square with
+    ``padding``, which must match the training crops), and the other kept berries of the
+    photo are its neighbours. Evaluation semantics apply: ``drop`` crops like ``keep``.
     Thresholds match ``labeling.proposals.propose``.
     """
-    crop_fn = crop_fn or partial(crop_box, padding=padding)
+    policy = (policy or CropPolicy(padding=padding)).for_evaluation()
     boxes, scores = detect_fn(image)
     boxes, scores = np.asarray(boxes, dtype=float), np.asarray(scores, dtype=float)
     confident = scores >= min_score
@@ -135,7 +142,16 @@ def predict_image(
         return []
     kept = non_max_suppression(boxes, scores, iou=iou)
     bboxes = [tuple(float(v) for v in boxes[i]) for i in kept]
-    crops = [image.crop(crop_fn(bbox, image.width, image.height)) for bbox in bboxes]
+    crops = [
+        crop_fruit(
+            image,
+            bbox,
+            [other for j, other in enumerate(bboxes) if j != i],
+            policy,
+            segment_fn=segment_fn,
+        )
+        for i, bbox in enumerate(bboxes)
+    ]
     features = embed_fn(crops)
     probs = predict_all_classes(probe, features, len(classes))
 
@@ -159,23 +175,22 @@ def predict_image(
     ]
 
 
-_CARD_PADDING = re.compile(r"^- \*\*padding\*\*: `([0-9.]+)`", re.MULTILINE)
+def run_policy(config: dict[str, Any], padding: float | None = None) -> CropPolicy:
+    """The crop policy a run's crops were cut with (ADR 0011).
 
-
-def resolve_padding(config: dict[str, Any]) -> float:
-    """Crop padding the run was trained with: ``crop_padding`` in the run config, else the
-    padding recorded in its gold release's dataset card."""
-    if config.get("crop_padding") is not None:
-        return float(config["crop_padding"])
-    card = dataset_dir(config["dataset"]) / "DATASET_CARD.md" if "dataset" in config else None
-    if card is not None and card.exists():
-        match = _CARD_PADDING.search(card.read_text())
-        if match:
-            return float(match.group(1))
-    raise ValueError(
-        f"can't tell which crop padding gold {config.get('dataset')!r} used; pass --padding "
-        "with the value from its DATASET_CARD.md"
-    )
+    ``resolve_policy`` reads the run's ``crop_policy``, else its gold release's
+    ``crop_policy.json``, else the legacy policy of an older release. Runs that predate ADR
+    0011 may also carry a ``crop_padding`` key, which is honoured when nothing else is set.
+    ``padding`` (a command-line override) replaces the padding only.
+    """
+    policy = resolve_policy(config)
+    if (
+        padding is None
+        and config.get("crop_policy") is None
+        and config.get("crop_padding") is not None
+    ):
+        padding = float(config["crop_padding"])
+    return policy if padding is None else replace(policy, padding=float(padding))
 
 
 @dataclass
@@ -186,10 +201,11 @@ class Predictor:
     classes: tuple[str, ...]
     detect_fn: DetectFn
     embed_fn: EmbedFn
-    padding: float
+    policy: CropPolicy = field(default_factory=CropPolicy)
     min_score: float = 0.2
     iou: float = 0.5
     heads: Sequence[HeadFn] = ()
+    segment_fn: SegmentFn | None = None
 
     def predict(self, image: Image.Image) -> list[BerryPrediction]:
         return predict_image(
@@ -198,10 +214,11 @@ class Predictor:
             embed_fn=self.embed_fn,
             probe=self.probe,
             classes=self.classes,
-            padding=self.padding,
+            policy=self.policy,
             min_score=self.min_score,
             iou=self.iou,
             heads=self.heads,
+            segment_fn=self.segment_fn,
         )
 
 
@@ -217,26 +234,77 @@ def _default_embedder(backbone: str) -> EmbedFn:  # pragma: no cover - needs the
     return dinov2_embedder(backbone)
 
 
+def _default_segmenter() -> SegmentFn:  # pragma: no cover - needs the ml extra and weights
+    from strawberry_picker.data.crops import sam_segmenter
+
+    return sam_segmenter()
+
+
+def quality_head(run_dir: Path, *, backbone: str, policy: CropPolicy) -> HeadFn:
+    """A defect run (``models/quality_cls/<run_id>/``, ADR 0010) as an inference head.
+
+    The head reuses the maturity run's embeddings, so its backbone and crop policy must be
+    the maturity run's. Each berry gets ``defects`` (a list) and ``grade`` (by rule).
+    """
+    run_dir = Path(run_dir)
+    config = load_config(run_dir / "config.yaml")
+    if config["model"]["backbone"] != backbone:
+        raise ValueError(
+            f"{run_dir} was trained on backbone {config['model']['backbone']!r}, but the "
+            f"maturity run uses {backbone!r}; the defect head needs the same embeddings"
+        )
+    quality_policy = run_policy(config)
+    if quality_policy.to_json() != policy.to_json():
+        raise ValueError(
+            f"{run_dir} was trained with a different crop policy than the maturity run; the "
+            "heads share one set of crops, so pass a matching run or --padding"
+        )
+    head: DefectHead = load_probe(run_dir)
+
+    def defect_head(features: np.ndarray) -> list[dict[str, Any]]:
+        return [
+            {"defects": list(found), "grade": grade_from_defects(found).value}
+            for found in head.predict(features)
+        ]
+
+    return defect_head
+
+
 def load_predictor(
     run_dir: Path,
     *,
+    quality_run: Path | None = None,
     detect_fn: DetectFn | None = None,
     embed_factory: Callable[[str], EmbedFn] | None = None,
+    segment_fn: SegmentFn | None = None,
     padding: float | None = None,
     min_score: float = 0.2,
     iou: float = 0.5,
 ) -> Predictor:
-    """Load ``models/maturity_cls/<run_id>/``; the run's config names backbone and classes."""
+    """Load ``models/maturity_cls/<run_id>/``; the run's config names backbone and classes.
+
+    ``quality_run`` adds the defect head from ``models/quality_cls/<run_id>/``: defects and
+    grade for every berry, from the same embeddings.
+    """
     run_dir = Path(run_dir)
     config = load_config(run_dir / "config.yaml")
+    backbone = config["model"]["backbone"]
+    policy = run_policy(config, padding)
+    heads: list[HeadFn] = []
+    if quality_run is not None:
+        heads.append(quality_head(quality_run, backbone=backbone, policy=policy))
+    if policy.neighbours is NeighbourMode.SEGMENT and segment_fn is None:
+        segment_fn = _default_segmenter()
     return Predictor(
         probe=load_probe(run_dir),
         classes=tuple(config["classes"]),
         detect_fn=detect_fn or _default_detector(),
-        embed_fn=(embed_factory or _default_embedder)(config["model"]["backbone"]),
-        padding=resolve_padding(config) if padding is None else padding,
+        embed_fn=(embed_factory or _default_embedder)(backbone),
+        policy=policy,
         min_score=min_score,
         iou=iou,
+        heads=heads,
+        segment_fn=segment_fn,
     )
 
 
