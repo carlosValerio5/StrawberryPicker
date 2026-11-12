@@ -77,6 +77,8 @@ def test_run_audit_flags_the_planted_label_error() -> None:
 
     assert result.issues.iloc[0].crop_id == frame.crop_id.iloc[planted]
     assert result.issues.iloc[0].suggested == "unripe"
+    assert result.issues.iloc[0].predicted == "unripe"  # out-of-fold argmax (ADR 0011 audit)
+    assert len(result.issues) == len(frame)  # every audited crop has a prediction
     per_source = result.per_source.set_index("source_name")
     assert per_source.loc["a", "n"] == 60 and per_source.loc["a", "flagged"] >= 1
     assert per_source.loc["c", "task"] == "defects"

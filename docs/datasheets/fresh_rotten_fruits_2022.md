@@ -16,7 +16,7 @@
 
 | Folder | Images | Our label | Contact-sheet check |
 |---|---|---|---|
-| FreshStrawberry | 200 | `defects: []` | Means *not rotten*: a few sampled berries are clearly deformed. About 1 in 4 images is a **pile of many berries** |
+| FreshStrawberry | 200 | `defects: []` | Means *not rotten*: a few sampled berries are clearly deformed. **46 % of images are piles of berries** (counted by OWLv2; ADR 0008) |
 | RottenStrawberry | 200 | `overripe` + `rot`, `needs_review` | Shrivelled, dried, dark; past peak. Piles as above |
 
 ## What the audit found
@@ -28,4 +28,6 @@
 ## Uses
 
 The largest pool of past-peak strawberries, 199 overripe candidates. They count only
-after review. Piles should be excluded or boxed before training a per-fruit classifier.
+after review. Since ADR 0008, single berries are cropped to their OWLv2 box and piles are
+held out. 62 reviewed overripe crops remain. Their overripe (shrivelled, dried) doesn't
+transfer to Kamat's moldy overripe (finding #18).

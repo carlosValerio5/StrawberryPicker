@@ -101,7 +101,8 @@ sources:
 
   fresh_rotten_fruits_2022:
     # Verified 2026-11-02 (pull 2026-11-02, sha256 matches Mendeley) on contact sheets.
-    # Image-level labels: ~1 in 4 sampled images is a pile of many berries.
+    # Image-level labels; OWLv2 finds 2+ berries in ~46 % of the strawberry images (piles).
+    # Proposals (ADR 0008): one confident box -> tight crop; piles or no box -> held out.
     title: Fresh and Rotten Fruits Dataset for Machine-Based Evaluation of Fruit Quality
     url: https://data.mendeley.com/datasets/bdd69gyhv8
     doi: 10.17632/bdd69gyhv8.1
@@ -109,6 +110,7 @@ sources:
     commercial_use: true
     format: imagefolder
     root: Original Image # `Original Image.zip`; Augmented Image.zip is not used
+    box_proposals: {source: owlv2_boxes, min_score: 0.3} # chosen from drawn boxes, ADR 0008
     unmapped: drop # the seven other fruits
     labels:
       FreshStrawberry: {defects: []} # means "not rotten": a few sampled berries are deformed
@@ -143,3 +145,22 @@ sources:
       fruit: drop # Roboflow supercategory, id 0; no annotations use it
       Blossom Blight: drop
     notes: 2,459 original images; leaf and flower classes are out of scope.
+
+  owner_phone_2026:
+    # Project's own capture (owner's iPhone, HEIC). One session on 2026-11-10 (one photo
+    # 2026-11-08): photos of the same berries can land in different splits, so in-distribution
+    # scores on this source are optimistic. The cross-source Kamat proxy is the honest number.
+    title: "Owner iPhone photos (project capture, 2026-11-10)"
+    url: https://github.com/carlosValerio5/StrawberryPicker # project's own capture (photos stay out of git)
+    license: project-owned
+    commercial_use: true
+    format: imagefolder
+    root: Fresas
+    group_by: image
+    box_proposals: {source: owlv2_boxes, min_score: 0.3} # ADR 0008: one confident box -> crop
+    labels:
+      overripe: {maturity: overripe} # sorted by the owner; defects not assessed
+      "defective ": {needs_review: true} # trailing space is in the folder name; owner labels defects by hand
+    notes: >-
+      94 overripe photos (mostly one berry each) and 57 'defective' photos (mixed defect
+      types, labelled later by hand). 3 file names appear in both folders.

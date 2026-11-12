@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image, ImageOps
 
-from strawberry_picker.data.gold import crop_box
+from strawberry_picker.data.crops import LEGACY_POLICY, CropPolicy, crop_fruit
 from strawberry_picker.evaluation.maturity import evaluate_maturity
 from strawberry_picker.evaluation.metrics import bootstrap_ci, krippendorff_alpha
 from strawberry_picker.labeling.tool import LABEL_COLUMNS, Label, current_labels, load_task
@@ -85,15 +85,16 @@ MAX_ECE = 0.10
 
 
 def load_pull_labels(pull_dir: Path) -> pd.DataFrame:
+    """Every label row in the pull. Files written before a column existed read it as empty."""
     frames = [
-        pd.read_csv(p, dtype=str, keep_default_na=False)
+        pd.read_csv(p, dtype=str, keep_default_na=False).reindex(
+            columns=list(LABEL_COLUMNS), fill_value=""
+        )
         for p in sorted(pull_dir.glob("labels*.csv"))
     ]
-    return (
-        pd.concat(frames, ignore_index=True)[list(LABEL_COLUMNS)]
-        if frames
-        else pd.DataFrame(columns=list(LABEL_COLUMNS))
-    )
+    if not frames:
+        return pd.DataFrame(columns=list(LABEL_COLUMNS))
+    return pd.concat(frames, ignore_index=True)
 
 
 def _alpha_ci(ratings: np.ndarray, groups: np.ndarray, n_resamples: int, seed: int):
@@ -111,17 +112,23 @@ def evaluate_pull(
     *,
     n_resamples: int = 2000,
     seed: int = 0,
+    crop_policy: CropPolicy = LEGACY_POLICY,
 ) -> dict[str, Any]:
-    """Score ``probe`` on a labeled phone pull and check every ADR 0005 bar."""
+    """Score ``probe`` on a labeled phone pull and check every ADR 0005 bar.
+
+    Crops are cut with the policy the model was trained with (``resolve_policy``, ADR 0011);
+    the other kept boxes of the same photo are its neighbours.
+    """
     task = load_task(pull_dir / "task.csv").set_index("item_id")
     labels = load_pull_labels(pull_dir)
     truth = ground_truth(labels)
+    policy = crop_policy.for_evaluation()
     crops = []
     for item_id in truth.item_id:
         row = task.loc[item_id]
         with Image.open(row.image_path) as raw:
             image = ImageOps.exif_transpose(raw).convert("RGB")
-        crops.append(image.crop(crop_box(json.loads(row.bbox) if row.bbox else None, *image.size)))
+        crops.append(crop_fruit(image, _box(row.bbox), _neighbours(task, labels, item_id), policy))
     probs = predict_all_classes(probe, embed_fn(crops), len(classes))
     codes = truth.maturity.map({name: k for k, name in enumerate(classes)}).to_numpy()
     groups = truth.group.to_numpy()
@@ -215,7 +222,27 @@ def evaluate_pull(
         if False in results
         else ("pass" if all(r is True for r in results) else "incomplete")
     )
-    return {"agreement": agreement, "metrics": metrics, "checks": checks, "verdict": verdict}
+    return {
+        "agreement": agreement,
+        "metrics": metrics,
+        "checks": checks,
+        "verdict": verdict,
+        "crop_policy": policy.to_dict(),
+    }
+
+
+def _box(value: str) -> list[float] | None:
+    return json.loads(value) if value else None
+
+
+def _neighbours(task: pd.DataFrame, labels: pd.DataFrame, item_id: str) -> list[list[float]]:
+    """Boxes of the other berries in the same photo; proposals nobody kept as fruit don't count."""
+    not_fruit = {
+        item for item, by in _votes(labels).items() if all(v.not_fruit for v in by.values())
+    }
+    photo = task.image_path[item_id]
+    others = task[(task.image_path == photo) & (task.index != item_id)]
+    return [_box(b) for i, b in others.bbox.items() if b and i not in not_fruit]
 
 
 def unresolved_items(labels: pd.DataFrame) -> list[str]:

@@ -42,12 +42,18 @@ src/strawberry_picker/
   data/                    bronze.py (ingest) → silver.py (clean) → gold.py (split/export)
     sources.py             registry parsing; readers.py (imagefolder/YOLO/COCO); dedup.py (dHash)
     reviews.py             human review labels (bronze/human_review) applied to silver on rebuild
+    crops.py               ONLY place for crop geometry: crop_box, CropPolicy (keep/mask/drop/
+                           segment), neighbour overlap (ADR 0011). Crop through crop_fruit
   audit/                   dataset audits → reports/dataset-audit/: contact_sheets.py (raw bronze),
-                           embeddings.py, label_issues.py (confident learning), probes.py, report.py
+                           embeddings.py, label_issues.py (confident learning), probes.py, report.py,
+                           neighbours.py (neighbour overlap per crop, error by overlap)
+                           multi_fruit.py (detector counts berries in whole-image rows)
   labeling/                tool.py (keyboard labeling page), tasks.py, proposals.py (OWLv2 boxes)
   models/                  linear_probe.py (DINOv2 + logistic baseline, run artifacts)
+                           calibration.py (temperature scaling, fitted on gold val only)
+                           defect_probe.py (per-defect probes, val thresholds, rule grade)
   evaluation/              metrics.py (ADR 0005 numbers), maturity.py, phone_set.py (locked verdict)
-  inference/               predict on new images
+  inference/               pipeline.py: photo → detect (OWLv2) → crop → per-berry maturity
 tests/                     pytest; must not need real data or GPUs
 ```
 

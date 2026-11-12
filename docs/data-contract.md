@@ -65,7 +65,7 @@ One row per unique image.
 | `bbox`           | list[float]? | `[x_min, y_min, x_max, y_max]` in pixels. Null means the whole image is one fruit |
 | `group_id`       | string    | split-leakage group, set by the source's `group_by`: `<source>/<image_id>` (default), `<source>`, or `<source>/<folder>` |
 | `ingested_at`    | timestamp | UTC time of the silver build |
-| `reviewed_by`    | string?   | Labelers (`alice+bob`) whose review in `bronze/human_review/` set this row. Null means the source's mapped label. With `needs_review` still true, reviewers disagreed, were unsure, or marked it not a strawberry |
+| `reviewed_by`    | string?   | Labelers (`alice+bob`) whose review in `bronze/human_review/` set this row. Null means the source's mapped label. With `needs_review` still true, reviewers disagreed, were unsure, marked it not a strawberry, or marked a whole-image row as several berries (its source label is kept) |
 
 Multi-fruit images with per-fruit boxes are stored as one row per fruit, sharing
 the same `image_id`. Images dropped from bronze are listed in
@@ -82,5 +82,11 @@ The silver columns plus:
 | `split`     | string | `train` / `val` / `test`, assigned per `group_id` |
 | `crop_id`   | string | `<image_id>_<n>`, where `n` is the fruit's position within its image in silver |
 | `crop_path` | string | crop file relative to the dataset folder |
+| `neighbour_bboxes` | list of `[x0, y0, x1, y1]` | the other fruit boxes in the same silver image, including rows this release leaves out ([ADR 0011](decisions/0011-crop-isolation.md)) |
+| `neighbour_overlap` | float | share of the crop those boxes cover, outside the fruit's own box (0–1) |
+| `crop_policy` | string | the `CropPolicy` JSON the crop was cut with; the release also has `crop_policy.json` |
+
+Crops the `drop` policy leaves out are listed, with the same columns, in `dropped.parquet`,
+and counted under `dropped` in `stats.json`.
 
 Rows with `needs_review = true`, or without the task's label, are not in gold.

@@ -76,4 +76,12 @@ class SilverRecord:
 
 
 SILVER_COLUMNS: tuple[str, ...] = tuple(f.name for f in fields(SilverRecord))
-GOLD_COLUMNS: tuple[str, ...] = (*SILVER_COLUMNS, "split", "crop_id", "crop_path")
+GOLD_COLUMNS: tuple[str, ...] = (
+    *SILVER_COLUMNS,
+    "split",
+    "crop_id",
+    "crop_path",
+    "neighbour_bboxes",  # other fruit boxes in the same image (ADR 0011)
+    "neighbour_overlap",  # share of the crop those boxes cover, outside the target box
+    "crop_policy",  # CropPolicy JSON the crop was cut with
+)

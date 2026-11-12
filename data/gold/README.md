@@ -10,9 +10,11 @@ Cut a new version instead.
 gold/
 └── <task>_v<MAJOR>.<MINOR>/      # e.g. maturity_cls_v1.0, quality_det_v0.1
     ├── DATASET_CARD.md           # task, sources, class balance, split strategy, known issues
-    ├── manifest.parquet          # silver rows + split, crop_id, crop_path
+    ├── manifest.parquet          # silver rows + split, crop_id, crop_path, neighbour overlap
+    ├── crop_policy.json          # how crops were cut (ADR 0011); evaluation reuses it
+    ├── dropped.parquet           # only if the drop policy left crops out
     ├── train/  val/  test/       # task-specific format, see below
-    └── stats.json                # counts per class per split (written by the build)
+    └── stats.json                # counts per class per split, plus dropped crops
 ```
 
 Build one with `uv run python scripts/build_gold.py <task> <MAJOR.MINOR>`.
@@ -26,7 +28,8 @@ Build one with `uv run python scripts/build_gold.py <task> <MAJOR.MINOR>`.
 | `*_det` (future) | YOLO: `<split>/images/*.jpg` + `<split>/labels/*.txt`, plus a `data.yaml` |
 | `*_seg` (future) | COCO: `<split>/images/*.jpg` + `<split>/annotations.json` |
 
-Each crop is a square around one fruit, with 15 % padding (`configs/data.yaml`).
+Each crop is a square around one fruit, with 15 % padding (`configs/data.yaml`). Other
+berries inside the crop are kept, masked or dropped by `gold.crop_neighbours` (ADR 0011).
 Rows with `needs_review` or without the task's label are left out.
 
 ## Rules

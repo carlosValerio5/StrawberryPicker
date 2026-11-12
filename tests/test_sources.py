@@ -114,4 +114,15 @@ def test_repo_registry_only_enables_verified_sources() -> None:
         "riseholme_2021",
         "strawberry_ds_2023",
         "strawberry_disease_2025",
+        "owner_phone_2026",  # owner iPhone photos, sorted by folder (datasheet)
     }
+
+
+def test_box_proposals_are_parsed(make_spec) -> None:
+    from strawberry_picker.data.sources import BoxProposals
+
+    spec = make_spec(box_proposals={"source": "owlv2_boxes", "min_score": 0.3})
+    assert spec.box_proposals == BoxProposals("owlv2_boxes", 0.3)
+    assert make_spec().box_proposals is None
+    with pytest.raises(ValueError, match="box_proposals"):
+        make_spec(box_proposals={"min_score": 0.3})

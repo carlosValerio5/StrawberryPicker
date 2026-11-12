@@ -46,6 +46,7 @@ def main() -> None:
         seed=config["seed"],
         n_resamples=config["eval"]["bootstrap_resamples"],
         c=config["model"]["c"],
+        calibration=config.get("calibration", "temperature"),
     )
     run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     run = save_run(models_dir() / config["task"] / run_id, probe, config, metrics)

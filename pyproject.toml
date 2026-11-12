@@ -10,6 +10,7 @@ dependencies = [
     "pyarrow>=16.0",
     "pillow>=10.3",
     "pyyaml>=6.0",
+    "pi-heif>=1.0",
 ]
 
 [project.optional-dependencies]

@@ -68,3 +68,8 @@ htmlcov/
 # Agent-local state (shared agent config is tracked)
 .claude/settings.local.json
 graphify-out/
+
+# Raw data archives dropped at the repo root (land them in bronze instead)
+/*.zip
+/*.tar
+/*.tar.gz

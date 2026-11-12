@@ -1,7 +1,8 @@
 """Embed every silver fruit crop with a frozen backbone, for the statistical audit.
 
 ``embed_crops`` takes any ``embed_fn(list[Image]) -> (n, d) array``, so tests use a fake
-and the audit uses ``dinov2_embedder``. Crops use the same padded square as gold.
+and the audit uses ``dinov2_embedder``. Crops go through the same ``CropPolicy`` as gold
+(ADR 0011): a row's ``neighbour_bboxes`` are masked when the policy says so.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
-from strawberry_picker.data.gold import crop_box
+from strawberry_picker.data.crops import LEGACY_POLICY, CropPolicy, crop_fruit
 
 EmbedFn = Callable[[list[Image.Image]], np.ndarray]
 
@@ -48,14 +49,25 @@ def embed_crops(
     *,
     batch_size: int = 64,
     padding: float = 0.15,
+    policy: CropPolicy | None = None,
 ) -> np.ndarray:
-    """One embedding row per manifest row, in manifest order."""
+    """One embedding row per manifest row, in manifest order.
+
+    ``policy`` defaults to ``keep`` with ``padding``. ``drop`` crops like ``keep`` here:
+    which rows to embed is the caller's choice.
+    """
+    policy = (policy or CropPolicy(padding=padding)).for_evaluation()
+    neighbours = (
+        manifest.neighbour_bboxes
+        if "neighbour_bboxes" in manifest
+        else pd.Series([None] * len(manifest), index=manifest.index)
+    )
     vectors: list[np.ndarray] = []
     batch: list[Image.Image] = []
-    for image_id, bbox in zip(manifest.image_id, manifest.bbox, strict=True):
+    for image_id, bbox, others in zip(manifest.image_id, manifest.bbox, neighbours, strict=True):
         with Image.open(images_dir / f"{image_id}.jpg") as raw:
             image = raw.convert("RGB")
-        batch.append(image.crop(crop_box(_bbox(bbox), *image.size, padding=padding)))
+        batch.append(crop_fruit(image, _bbox(bbox), others, policy))
         if len(batch) == batch_size:
             vectors.append(embed_fn(batch))
             batch = []
@@ -95,20 +107,42 @@ def cached_embeddings(
     *,
     model: str,
     batch_size: int = 64,
+    policy: CropPolicy | None = None,
 ) -> np.ndarray:
     """Embeddings for ``frame`` rows (by ``crop_id``), embedding only crops not yet cached.
 
-    The cache (``crop_id, model, embedding``) keeps every model's vectors side by side.
+    The cache (``crop_id, model, crop, embedding``) keeps every model's and every crop
+    policy's vectors side by side, so a masked release never reuses unmasked vectors.
+    Without ``policy``, a gold manifest's ``crop_policy`` column decides; otherwise the
+    legacy ``keep`` crop. Caches written before ADR 0011 hold legacy crops.
     ``embed_factory`` is only called when something is missing, so loading weights is lazy.
     """
+    policy = (policy or _frame_policy(frame)).for_evaluation()
+    key = policy.to_json()
     cache = pd.read_parquet(cache_path) if cache_path.exists() else pd.DataFrame()
-    known = set(cache.crop_id[cache.model == model]) if not cache.empty else set()
+    if not cache.empty and "crop" not in cache:
+        cache["crop"] = LEGACY_POLICY.to_json()
+    mine = (cache.model == model) & (cache.crop == key) if not cache.empty else None
+    known = set(cache.crop_id[mine]) if mine is not None else set()
     missing = frame[~frame.crop_id.isin(known)]
     if len(missing):
-        vectors = embed_crops(missing, images_dir, embed_factory(), batch_size=batch_size)
-        new = pd.DataFrame({"crop_id": missing.crop_id, "model": model, "embedding": list(vectors)})
+        vectors = embed_crops(
+            missing, images_dir, embed_factory(), batch_size=batch_size, policy=policy
+        )
+        new = pd.DataFrame(
+            {"crop_id": missing.crop_id, "model": model, "crop": key, "embedding": list(vectors)}
+        )
         cache = pd.concat([cache, new], ignore_index=True)
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         cache.to_parquet(cache_path, index=False)
-    by_crop = cache[cache.model == model].set_index("crop_id").embedding
+    by_crop = cache[(cache.model == model) & (cache.crop == key)].set_index("crop_id").embedding
     return np.stack(by_crop.loc[frame.crop_id].to_numpy())
+
+
+def _frame_policy(frame: pd.DataFrame) -> CropPolicy:
+    if "crop_policy" not in frame or frame.crop_policy.isna().all():
+        return LEGACY_POLICY
+    policies = set(frame.crop_policy.dropna())
+    if len(policies) > 1:
+        raise ValueError(f"rows were cut with {len(policies)} different crop policies")
+    return CropPolicy.from_json(policies.pop())

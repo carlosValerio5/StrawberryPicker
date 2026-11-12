@@ -11,10 +11,14 @@ Thin command-line entry points. Each script parses arguments, loads a config wit
 | `build_silver.py` | Rebuild `data/silver/` from every enabled source |
 | `build_gold.py <task> <version>` | Release an immutable gold dataset |
 | `dataset_audit.py` | Statistical audit, review lists and random samples → `reports/dataset-audit/` |
-| `make_label_task.py <kind>` | Turn a backlog (`overripe`, `needs-review`, `random-sample`, `flagged`) into a labeling task |
-| `label.py <task.csv> --labeler <you>` | Keyboard labeling page on 127.0.0.1 (`--blind`, `--sample 50`) |
+| `crop_overlap.py` | How much of each crop shows other berries, per source and label (silver only, no ml extra) → `reports/dataset-audit/neighbours/` (ADR 0011) |
+| `flag_multi_fruit.py` | Count berries (OWLv2) in whole-image silver rows → `reports/dataset-audit/multi_fruit/`. Flags only; nothing is relabeled |
+| `make_label_task.py <kind>` | Turn a backlog (`overripe`, `needs-review`, `random-sample`, `flagged`, `multi-fruit`) into a labeling task |
+| `label.py <task.csv> --labeler <you>` | Labeling page on 127.0.0.1, by keyboard or touch (`--blind`, `--sample 50`). `--lan` serves it to phones on the same Wi-Fi behind a fresh token; each phone enters its own name. `--multi-fruit` adds the `s` several-berries key |
 | `ingest_reviews.py labels_*.csv` | Land finished labels in `bronze/human_review/`; the next `build_silver.py` applies them |
 | `propose_boxes.py <photo folder>` | OWLv2 boxes for phone photos → `task.csv` (downloads ~600 MB weights on first use) |
 | `ingest_phone_set.py <folder>` | Land the finished phone set in `bronze/phone_testset/` (locked: never in silver/gold) |
 | `train_maturity.py` | Train the DINOv2 linear-probe baseline → `models/maturity_cls/<run_id>/` |
+| `train_quality.py` | Train the per-defect probe baseline (ADR 0010) → `models/quality_cls/<run_id>/` |
+| `predict.py <image or folder> [--run] [--quality-run] [--no-quality] [--annotate]` | Per-berry maturity, defects and grade for new photos (detect → crop → classify, ADRs 0009–0011) as JSON. Refuses the locked phone set |
 | `evaluate_phone_set.py` | The ADR 0005 verdict on the locked phone set, or the adjudication task if labelers disagree |

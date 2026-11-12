@@ -6,9 +6,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from strawberry_picker.evaluation.phone_set import ground_truth, labeler_agreement
+from strawberry_picker.evaluation.phone_set import (
+    ground_truth,
+    labeler_agreement,
+    load_pull_labels,
+)
 from strawberry_picker.labeling.proposals import non_max_suppression, propose
-from strawberry_picker.labeling.tool import LabelStore, parse_label
+from strawberry_picker.labeling.tool import LABEL_COLUMNS, LabelStore, parse_label
 
 
 def test_non_max_suppression_keeps_the_best_of_overlapping_boxes() -> None:
@@ -130,3 +134,78 @@ def test_unresolved_items_need_adjudication(labels) -> None:
     from strawberry_picker.evaluation.phone_set import unresolved_items
 
     assert unresolved_items(labels) == ["p3_0"]  # p1_1 was adjudicated; p2_1 is not a fruit
+
+
+def test_evaluate_pull_crops_with_the_training_policy(tmp_path) -> None:
+    from PIL import Image
+
+    from strawberry_picker.data.crops import CropPolicy
+    from strawberry_picker.evaluation.phone_set import evaluate_pull
+
+    pull = tmp_path / "pull"
+    pull.mkdir()
+    image = Image.new("RGB", (80, 40), (230, 20, 20))  # left: red berry
+    image.paste((40, 200, 40), (40, 0, 80, 40))  # right: green berry
+    image.save(pull / "P0.jpg", quality=100)
+    rows = [
+        ("P0_0", "P0.jpg", "[10, 10, 30, 30]", "", "P0"),
+        ("P0_1", "P0.jpg", "[40, 0, 80, 40]", "", "P0"),
+        ("P0_2", "P0.jpg", "[0, 0, 80, 40]", "", "P0"),  # a bad proposal: rejected below
+    ]
+    pd.DataFrame(rows, columns=["item_id", "image_path", "bbox", "given", "group"]).to_csv(
+        pull / "task.csv", index=False
+    )
+    store = LabelStore(pull / "labels_task.csv", "alice")
+    store.record(parse_label({"item_id": "P0_0", "maturity": "ripe"}))
+    store.record(parse_label({"item_id": "P0_1", "maturity": "unripe"}))
+    store.record(parse_label({"item_id": "P0_2", "not_fruit": True}))
+    seen = []
+
+    def record(crops):
+        seen.extend(np.asarray(c, dtype=float) for c in crops)
+        return np.stack([c.mean(axis=(0, 1)) for c in seen[-len(crops) :]])
+
+    policy = CropPolicy(padding=1.0, neighbours="drop", max_neighbour_overlap=0.0)
+    report = evaluate_pull(
+        pull,
+        _FakeProbe(),
+        record,
+        ("unripe", "ripe", "overripe"),
+        n_resamples=10,
+        crop_policy=policy,
+    )
+    # Drop never skips a test berry; the crop is cut as `keep` and the green leaks in.
+    assert report["metrics"]["n"] == 2
+    assert report["crop_policy"] == policy.for_evaluation().to_dict()
+    assert seen[0][..., 1].max() > 150
+
+    seen.clear()
+    masked = CropPolicy(padding=1.0, neighbours="mask", fill=(0, 0, 0))
+    evaluate_pull(
+        pull,
+        _FakeProbe(),
+        record,
+        ("unripe", "ripe", "overripe"),
+        n_resamples=10,
+        crop_policy=masked,
+    )
+    # The green neighbour is masked; the rejected whole-photo box is not a neighbour.
+    left = seen[0]  # crop_box → (0, 0, 60, 40); the target box is columns 10-30
+    assert left[..., 1].max() < 60
+    assert left[20, 2, 0] > 200  # context left of the target is kept
+
+
+def test_load_pull_labels_reads_files_written_before_multi_fruit(tmp_path) -> None:
+    old_columns = [c for c in LABEL_COLUMNS if c != "multi_fruit"]
+    old = pd.DataFrame([dict.fromkeys(old_columns, "")], columns=old_columns)
+    old.loc[0, ["item_id", "labeler", "maturity", "action"]] = ["a_0", "alice", "ripe", "label"]
+    old.to_csv(tmp_path / "labels_alice.csv", index=False)
+    LabelStore(tmp_path / "labels_bob.csv", "bob").record(
+        parse_label({"item_id": "a_0", "maturity": "ripe"})
+    )
+
+    labels = load_pull_labels(tmp_path)
+
+    assert list(labels.columns) == list(LABEL_COLUMNS)
+    assert sorted(labels.labeler) == ["alice", "bob"]
+    assert set(labels.multi_fruit) <= {"", "False"}

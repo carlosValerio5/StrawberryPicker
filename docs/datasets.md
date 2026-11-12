@@ -16,6 +16,7 @@ own augmented copies.
 | [`strawberry_ds_2023`](https://data.mendeley.com/datasets/z6dtfdpzz8/1) | 6 stages → unripe / ripe | 247 images, multi-fruit | Egypt greenhouse, 3840×2160 | CC BY 4.0 | **enabled** (audited) |
 | [`kamat_2025`](https://data.mendeley.com/datasets/zysvgmxcyz/1) | unripe 114+238 · ripe 189 · rotten 170 | ~711 strawberry samples | India, field, **pastel backgrounds** | CC BY 4.0 | **enabled** (audited; 43 % of images missing from the deposit) |
 | [`fresh_rotten_fruits_2022`](https://data.mendeley.com/datasets/bdd69gyhv8) | no defects 200 · rot 200 | 512×512 | shops and fields, DSLR | CC BY 4.0 | **enabled** (audited) |
+| [`owner_phone_2026`](datasheets/owner_phone_2026.md) | overripe 94 · defective 57 (review) | 151 photos, 279 boxes | owner's iPhone, hand-held, HEIC | project-owned | **enabled** (defects pending review) |
 | [`strawberry_disease_2025`](https://data.mendeley.com/datasets/k2ptxmfjhj/1) | mold, rot, healthy (fruit classes only) | 2,459 originals in 8 classes | field, COCO polygons, **1,018 DALL·E images** | **CC BY-NC 4.0** | **enabled**, test + valid only (audited) |
 
 "Needs verify" means the label mapping is written, but the source stays `enabled: false`
@@ -79,8 +80,9 @@ Datasheets for every source are in [`docs/datasheets/`](datasheets/).
 | 11 | **About 1 in 4 sampled Kamat "unripe" boxes is a flower or bud** | contact sheet | `unripe` → `needs_review` |
 | 12 | **Kamat "rotten" is mostly white fuzzy mold** | contact sheet | mapped to `overripe` + `mold`, `needs_review` |
 | 13 | **574 of Kamat's 1,332 label files have no image** in the deposit | file listing | none; 342 fruit rows are usable |
-| 14 | **Fresh/Rotten labels are per image and about 1 in 4 images is a pile of berries.** "Fresh" means not rotten; some are deformed | contact sheets | Fresh kept as `defects: []` (caveat noted); Rotten → `overripe` + `rot`, `needs_review` |
+| 14 | **Fresh/Rotten labels are per image, and many images are piles of berries** (about 1 in 4 on the contact sheets; OWLv2 later counted 46 %, see ADR 0008). "Fresh" means not rotten; some are deformed | contact sheets | Fresh kept as `defects: []` (caveat noted); Rotten → `overripe` + `rot`, `needs_review` |
 | 15 | **Disease `train/` is now complete** (pull `2026-11-02.2`, the whole-dataset ZIP). 319 augmented copies were removed | silver rejections | `exclude` for train removed |
+| 14a | **Follow-up to 14: piles are now found by a detector, then confirmed by a person.** `scripts/flag_multi_fruit.py` counts berries (OWLv2) in every whole-image row; `make_label_task.py multi-fruit` sends those with 2+ berries to `label.py --multi-fruit`. An agreed `s` (several berries) keeps the source label but sets `needs_review`, so gold skips the image | `reports/dataset-audit/multi_fruit/report.md` (not run yet: needs the ml extra and weights) | Run it, then label the task |
 | 16 | **Confident learning misses boxes that aren't fruit.** It flagged 1.3 % of Strawberry-DS, while the contact sheets showed 6–12 % empty boxes | audit report vs contact sheets | **ADR [0006](decisions/0006-random-sample-error-rate.md) (proposed)**: estimate error rates from a random sample |
 
 **Statistical audit** (`scripts/dataset_audit.py`, DINOv2-small embeddings, linear
@@ -115,6 +117,112 @@ probes, group-aware CV; full report in `reports/dataset-audit/report.md`):
 - 287 overripe candidates (Fresh/Rotten 199, Kamat 88) are waiting for review.
 - Gold-eligible defects: **rot 723, mold 683**.
 
+### Part 3: reviewed overripe and the first 3-class model (2026-11-03)
+
+All 287 overripe candidates were reviewed on the phone labeler by one labeler. Landed as
+`bronze/human_review/2026-11-02`.
+
+- **Verdicts:** 278 confirmed overripe (Fresh/Rotten 196, Kamat 82), 9 actually ripe, 0 not
+  a strawberry, 0 unsure.
+- **Defects marked:** rot 101, mold 93, mechanical damage 37, bruise 6, pest damage 6, and
+  **deformed 143**. That last count needs a second look: the rubric's `deformed` means
+  misshapen growth, not shrivelling with age.
+- **Gold `maturity_cls_v0.2`:** unripe 3,144, ripe 761, **overripe 278**.
+
+**Finding #17: overripe is learned as a source shortcut.** All 139 overripe *training*
+examples come from Fresh/Rotten (whole photos on white paper, often piles), which has
+almost no other class.
+
+| Run | Overripe recall, in-distribution | Overripe recall, Kamat proxy (never trained on) | Proxy QWK | Proxy ECE |
+|---|---|---|---|---|
+| `20261103T023318Z` (v0.1, no overripe) | n/a | n/a | 0.674 | 0.130 |
+| `20261103T040357Z` (v0.2) | 1.00 (23/23) | **0.20** [0.11, 0.32] (16/82) | **0.429** | **0.339** |
+
+On the proxy, 61 of 82 overripe berries were called ripe. The in-distribution 1.00 is
+same-source and shouldn't be cited on its own. Overripe needs examples from more than one
+setting before any model's overripe numbers mean anything.
+
+**Finding #18: cropping didn't fix it, because the two sources' "overripe" look different.**
+
+OWLv2 single-berry crops (ADR [0008](decisions/0008-box-proposals-for-image-labels.md),
+gold `maturity_cls_v0.3`) removed the white-paper background and the piles. That left 62
+Fresh/Rotten overripe crops (38 of them in train). Then each source was held out in turn:
+
+| Trained with overripe from | Held out | Overripe recall on the held-out source | Misses called |
+|---|---|---|---|
+| Fresh/Rotten (38; run `20261103T050445Z`) | Kamat | 0.15 [0.08, 0.25] | ripe (64/82) |
+| Kamat (77) | Fresh/Rotten | 0.27 | ripe (44/62) |
+
+Each source shows one narrow kind of overripe: Fresh/Rotten berries are shrivelled and
+dried, while Kamat's are red with white fuzzy mold. A probe that relies on color calls
+both kinds "ripe". The fix is overripe examples from more settings, not more cropping.
+Whether the decay signs (mold, rot, shrivelling) belong in the maturity label or only in
+the defect head is an open taxonomy question.
+
+The OWLv2 crops are kept anyway: they remove the pile-label errors (46 % of Fresh/Rotten
+images held out).
+
+### Part 4: owner phone photos (2026-11-12)
+
+The project owner's own iPhone photos, one session on 2026-11-10. Datasheet:
+[`datasheets/owner_phone_2026.md`](datasheets/owner_phone_2026.md).
+
+- **Folders:** `Fresas/overripe` 94 photos, `Fresas/defective ` 57 photos (trailing space
+  in the name).
+- **Mapping:** overripe → `overripe` (owner-sorted, defects not assessed). Defective →
+  `needs_review`. The owner labels maturity and each defect per berry, in
+  `reports/labeling/needs-review_owner_phone_2026.csv` (58 crops).
+- **Boxes:** OWLv2 (ADR [0008](decisions/0008-box-proposals-for-image-labels.md), min score
+  0.3) found 279 boxes on 151 photos.
+- **Silver:** 147 rows. 89 overripe ready, 2 overripe held as piles, 56 defective pending
+  review. 3 exact duplicates were rejected (IMG_1622, IMG_1638, IMG_1639; the defective
+  copy is kept, so the owner's review sets both maturity and defects). 1 near-duplicate
+  was rejected (defective IMG_1486 ≈ IMG_1485).
+- **Caveats:** one session, so in-distribution scores are optimistic (use the Kamat
+  proxy). One labeler. No unripe or ripe photos. Training source only, not the locked
+  phone test set (ADR [0007](decisions/0007-lean-phone-test-set.md)).
+
+Findings #17 and #18 showed that overripe from Fresh/Rotten and from Kamat don't transfer
+to each other. This source adds a third overripe setting, hand-held phone photos like our
+target use. It is training data, so it can't give an ADR 0005 verdict.
+
+**Finding #19: the owner's photos teach a crop-size shortcut, not ripeness.** Median box
+side in gold `maturity_cls_v0.5`:
+
+| Class | Source | Median side |
+|---|---|---|
+| unripe (training) | Riseholme | 64 px |
+| unripe (training) | Strawberry-DS | 174 px |
+| overripe (training) | Fresh/Rotten | 1,374 px |
+| overripe (training) | owner phone | 2,047 px |
+| unripe (proxy, never trained on) | Kamat | 1,924 px |
+
+Training unripe crops are small and training overripe crops are large, so size separates
+the classes. Kamat's unripe crops are large, so a probe trained with the owner's overripe
+photos calls most Kamat unripe berries overripe.
+
+Selection rule, fixed before the sweeps: highest Kamat proxy QWK, ties broken by the
+lowest per-class recall. Sweep on the Kamat proxy (gold v0.5, DINOv2-small linear probe):
+
+| Variant | Proxy QWK | Recall unripe / ripe / overripe |
+|---|---|---|
+| Owner photos held out (**chosen**) | 0.424 | 0.72 / 0.85 / 0.15 |
+| All sources | -0.069 | 0.29 / 0.58 / 0.26 |
+| All, C=0.1 | 0.199 | 0.56 / 0.57 / 0.23 |
+| All, owner weight 0.3, C=0.01 | 0.226 | 0.61 / 0.60 / 0.23 |
+| Crops downsampled to 96 px, all sources | 0.121 | 0.51 / 0.54 / 0.33 |
+| Crops downsampled to 96 px, owner held out | 0.386 | 0.72 / 0.72 / 0.24 |
+
+- Before the owner's review labels (gold v0.4), the all-sources run had proxy QWK 0.000.
+  Adding 19 owner "ripe" berries did not remove the shortcut.
+- Downsampling every crop (48, 64 or 96 px) only partly helped.
+
+**Consequence for v1:** the maturity probe holds `owner_phone_2026` out and scores it as a
+second proxy (real phone photos, never trained on). The defect head does train on it.
+
+**Fix for v1.1:** unripe and ripe photos from the same phone setting, and/or size-matched
+crops in training and inference.
+
 ## Expected class balance after mapping (approximate)
 
 | unripe | ripe | overripe | rot / mold | bruise, deformed, pest, mechanical |
@@ -128,7 +236,7 @@ Overripe and most defect types are the gaps. See
 
 | # | What | Why | Where |
 |---|---|---|---|
-| 1 | **Crop one fruit per image**: a square box padded by 15 % | Classifiers learn one label per image. Detection datasets have several fruits per photo | `gold.crop_box` |
+| 1 | **Crop one fruit per image**: a square box padded by 15 %. Neighbours that fall inside the crop are kept, masked or dropped by `CropPolicy` (ADR 0011, proposed) | Classifiers learn one label per image. Detection datasets have several fruits per photo | `crops.crop_box`, `crops.crop_fruit` |
 | 2 | **Map labels per source**. Ambiguous classes get `needs_review` | Every dataset draws ripeness boundaries differently (Yurdakul's semi-ripe spans 10–90 % red, ours is ≥75 %) | `configs/sources.yaml` |
 | 3 | **Remove exact and near duplicates**: SHA-256 of pixels, then dHash over all 8 flips/rotations | Several sources ship their own augmented copies. Copies split across train and test inflate the scores | `silver.build_silver`, `dedup` |
 | 4 | **Drop synthetic images** | DALL·E images aren't real fruit and would teach the model artifacts | `exclude` globs per source |
