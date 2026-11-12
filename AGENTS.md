@@ -53,7 +53,7 @@ src/strawberry_picker/
                            calibration.py (temperature scaling, fitted on gold val only)
                            defect_probe.py (per-defect probes, val thresholds, rule grade)
   evaluation/              metrics.py (ADR 0005 numbers), maturity.py, phone_set.py (locked verdict)
-  inference/               predict on new images
+  inference/               pipeline.py: photo → detect (OWLv2) → crop → per-berry maturity
 tests/                     pytest; must not need real data or GPUs
 ```
 

@@ -20,4 +20,5 @@ Thin command-line entry points. Each script parses arguments, loads a config wit
 | `ingest_phone_set.py <folder>` | Land the finished phone set in `bronze/phone_testset/` (locked: never in silver/gold) |
 | `train_maturity.py` | Train the DINOv2 linear-probe baseline → `models/maturity_cls/<run_id>/` |
 | `train_quality.py` | Train the per-defect probe baseline (ADR 0010) → `models/quality_cls/<run_id>/` |
+| `predict.py <image or folder> [--run] [--annotate]` | Per-berry maturity for new photos (detect → crop → classify, ADR 0009) as JSON. Refuses the locked phone set |
 | `evaluate_phone_set.py` | The ADR 0005 verdict on the locked phone set, or the adjudication task if labelers disagree |
