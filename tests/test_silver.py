@@ -239,3 +239,48 @@ def test_build_silver_applies_agreed_human_reviews(bronze_sources, tmp_data_dir)
     )
     assert reviewed.source_label == "ripe"  # what the source said is kept for audits
     assert len(second) == len(first)
+
+
+def test_build_silver_uses_box_proposals_and_holds_piles(
+    tmp_data_dir, make_image, make_spec
+) -> None:
+    from strawberry_picker.labeling.tool import LabelStore, parse_label
+
+    pull = tmp_data_dir / "bronze" / "toy_boxed" / "2026-11-02"
+    for seed, name in enumerate(("one", "pile", "none", "unlisted")):
+        make_image(pull / "Ripe" / f"{name}.png", seed=10 + seed)
+    proposals = tmp_data_dir / "bronze" / "owlv2_boxes" / "2026-11-03"
+    proposals.mkdir(parents=True)
+    prefix = "toy_boxed/2026-11-02/Ripe"
+    pd.DataFrame(
+        [
+            (f"{prefix}/one.png", 0.8, 4.0, 4.0, 30.0, 30.0),
+            (f"{prefix}/one.png", 0.1, 40.0, 4.0, 50.0, 14.0),  # below min_score: ignored
+            (f"{prefix}/pile.png", 0.7, 2.0, 2.0, 20.0, 20.0),
+            (f"{prefix}/pile.png", 0.6, 30.0, 2.0, 60.0, 40.0),
+            (f"{prefix}/none.png", 0.2, 2.0, 2.0, 20.0, 20.0),
+        ],
+        columns=["bronze_path", "score", "x0", "y0", "x1", "y1"],
+    ).to_csv(proposals / "toy_boxed.csv", index=False)
+    spec = make_spec(
+        "toy_boxed",
+        labels={"Ripe": {"maturity": "ripe", "defects": []}},
+        box_proposals={"source": "owlv2_boxes", "min_score": 0.3},
+    )
+
+    rows = build_silver({"toy_boxed": spec}, **BUILD_KWARGS).manifest.set_index("bronze_path")
+
+    one, pile, none, unlisted = (
+        rows.loc[f"{prefix}/{n}.png"] for n in ("one", "pile", "none", "unlisted")
+    )
+    assert list(one.bbox) == [4.0, 4.0, 30.0, 30.0] and not one.needs_review
+    assert pile.bbox is None and pile.needs_review  # several berries under one label
+    assert none.bbox is None and none.needs_review  # no confident strawberry
+    assert unlisted.bbox is None and not unlisted.needs_review  # not proposed yet: as before
+
+    review = tmp_data_dir / "bronze" / "human_review" / "2026-11-05" / "labels.csv"
+    LabelStore(review, "alice").record(
+        parse_label({"item_id": f"{pile.image_id}_0", "maturity": "ripe"})
+    )
+    again = build_silver({"toy_boxed": spec}, **BUILD_KWARGS).manifest.set_index("bronze_path")
+    assert again.loc[f"{prefix}/pile.png"].needs_review  # a review can't make a pile one berry

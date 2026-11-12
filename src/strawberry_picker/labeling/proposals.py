@@ -76,7 +76,7 @@ def owlv2_detector(  # pragma: no cover - needs the ml extra and model weights
         inputs = processor(text=[[query]], images=image, return_tensors="pt").to(device)
         outputs = model(**inputs)
         side = max(image.size)  # OWLv2 pads to a square before predicting
-        result = processor.post_process_object_detection(
+        result = processor.post_process_grounded_object_detection(
             outputs, threshold=0.0, target_sizes=torch.tensor([[side, side]])
         )[0]
         boxes = result["boxes"].cpu().numpy()
