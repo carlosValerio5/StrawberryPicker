@@ -50,6 +50,7 @@ src/strawberry_picker/
                            multi_fruit.py (detector counts berries in whole-image rows)
   labeling/                tool.py (keyboard labeling page), tasks.py, proposals.py (OWLv2 boxes)
   models/                  linear_probe.py (DINOv2 + logistic baseline, run artifacts)
+                           calibration.py (temperature scaling, fitted on gold val only)
   evaluation/              metrics.py (ADR 0005 numbers), maturity.py, phone_set.py (locked verdict)
   inference/               predict on new images
 tests/                     pytest; must not need real data or GPUs

@@ -15,6 +15,14 @@ image ──► [1] detect strawberries ──► per-fruit crops ──► [2] 
 Heads 2 and 3 can share one frozen backbone with two lightweight heads. That's
 the recommended first baseline because it trains fast on small labeled sets.
 
+**Calibration.** ADR 0005 §B3 needs ECE ≤ 0.10, and the first baseline scored 0.130 on
+the Kamat proxy. The maturity probe is therefore temperature-scaled
+(`models/calibration.py`, Guo et al. 2017): one scalar `T`, fitted by negative
+log-likelihood on the gold **val** split of the training sources. It's never fitted on
+test, a held-out proxy source or the phone set. `T` is stored in the run's
+`calibration.json`. Argmax predictions don't change, so recall and kappa stay the same;
+only the confidences move. `calibration: none` in `configs/maturity_cls.yaml` turns it off.
+
 ## Candidate open-source models
 
 Check licenses before adopting. Code and weights can have different licenses.
