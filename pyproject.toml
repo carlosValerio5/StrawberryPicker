@@ -21,6 +21,10 @@ ml = [
     "transformers>=4.44",
     "scikit-learn>=1.5",
 ]
+# Local Gradio demo (scripts/demo_maturity.py). Also needs the ``ml`` extra + a trained run.
+demo = [
+    "gradio>=4.44",
+]
 
 [dependency-groups]
 dev = [

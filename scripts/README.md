@@ -18,3 +18,4 @@ Thin command-line entry points. Each script parses arguments, loads a config wit
 | `ingest_phone_set.py <folder>` | Land the finished phone set in `bronze/phone_testset/` (locked: never in silver/gold) |
 | `train_maturity.py` | Train the DINOv2 linear-probe baseline → `models/maturity_cls/<run_id>/` |
 | `evaluate_phone_set.py` | The ADR 0005 verdict on the locked phone set, or the adjudication task if labelers disagree |
+| `demo_maturity.py` | Gradio UI: upload/webcam → OWLv2 boxes + maturity (`uv run --with gradio python scripts/demo_maturity.py`) |

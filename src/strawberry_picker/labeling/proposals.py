@@ -39,8 +39,26 @@ def non_max_suppression(boxes: np.ndarray, scores: np.ndarray, *, iou: float) ->
     return np.array(kept, dtype=int)
 
 
+def keep_box(
+    box: np.ndarray, width: int, height: int, *, min_side_frac: float, max_aspect: float
+) -> bool:
+    """Drop thin strips and tiny edge fragments that look like a zoomed blur in the label UI."""
+    x0, y0, x1, y1 = (float(v) for v in box)
+    w, h = max(x1 - x0, 1.0), max(y1 - y0, 1.0)
+    side = max(w, h)
+    if side < min_side_frac * min(width, height):
+        return False
+    return max(w, h) / min(w, h) <= max_aspect
+
+
 def propose(
-    photos: Sequence[Path], detect_fn: DetectFn, *, min_score: float = 0.2, iou: float = 0.5
+    photos: Sequence[Path],
+    detect_fn: DetectFn,
+    *,
+    min_score: float = 0.2,
+    iou: float = 0.5,
+    min_side_frac: float = 0.25,
+    max_aspect: float = 2.0,
 ) -> pd.DataFrame:
     """A labeling task with one row per proposed fruit: ids ``<photo stem>_<n>``, best first."""
     rows = []
@@ -52,10 +70,20 @@ def propose(
         confident = scores >= min_score
         boxes, scores = boxes[confident], scores[confident]
         stem = Path(photo).stem
-        for n, i in enumerate(non_max_suppression(boxes, scores, iou=iou)):
+        kept = 0
+        for i in non_max_suppression(boxes, scores, iou=iou):
+            if not keep_box(
+                boxes[i],
+                image.width,
+                image.height,
+                min_side_frac=min_side_frac,
+                max_aspect=max_aspect,
+            ):
+                continue
             rows.append(
-                (f"{stem}_{n}", str(photo), json.dumps([float(v) for v in boxes[i]]), "", stem)
+                (f"{stem}_{kept}", str(photo), json.dumps([float(v) for v in boxes[i]]), "", stem)
             )
+            kept += 1
     return pd.DataFrame(rows, columns=list(TASK_COLUMNS))
 
 

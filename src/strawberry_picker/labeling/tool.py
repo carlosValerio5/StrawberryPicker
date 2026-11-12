@@ -21,6 +21,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 import pandas as pd
 from PIL import Image, ImageOps
@@ -164,11 +165,12 @@ def work_order(task: pd.DataFrame, *, sample: int | None = None, seed: int = 0) 
     return items
 
 
-def render_crop(row: pd.Series, size: int = CROP_PX) -> bytes:
+def render_crop(row: pd.Series, size: int = CROP_PX, *, padding: float = 0.45) -> bytes:
+    """Square crop for the labeling UI; extra ``padding`` so thin/edge OWLv2 boxes stay readable."""
     with Image.open(row.image_path) as raw:
         image = ImageOps.exif_transpose(raw).convert("RGB")
     bbox = json.loads(row.bbox) if row.bbox else None
-    crop = image.crop(crop_box(bbox, *image.size))
+    crop = image.crop(crop_box(bbox, *image.size, padding=padding))
     buffer = io.BytesIO()
     ImageOps.pad(crop, (size, size), color=(255, 255, 255)).save(buffer, "JPEG", quality=90)
     return buffer.getvalue()
@@ -214,8 +216,12 @@ def make_server(
                         item["given"] = rows.loc[pending[0], "given"]
                 total = len(order)
                 self._json({"item": item, "done": total - len(pending), "total": total})
-            elif self.path.startswith("/crop/") and self.path[6:] in rows.index:
-                self._send(HTTPStatus.OK, render_crop(rows.loc[self.path[6:]]), "image/jpeg")
+            elif self.path.startswith("/crop/"):
+                item_id = unquote(self.path[6:])
+                if item_id in rows.index:
+                    self._send(HTTPStatus.OK, render_crop(rows.loc[item_id]), "image/jpeg")
+                else:
+                    self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
             else:
                 self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
 

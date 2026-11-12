@@ -116,6 +116,12 @@ def evaluate_pull(
     task = load_task(pull_dir / "task.csv").set_index("item_id")
     labels = load_pull_labels(pull_dir)
     truth = ground_truth(labels)
+    # Labels may still name boxes that were filtered from task.csv (tiny/edge OWLv2 junk).
+    missing = sorted(set(truth.item_id) - set(task.index))
+    if missing:
+        truth = truth[~truth.item_id.isin(missing)].reset_index(drop=True)
+    if truth.empty:
+        raise ValueError(f"no labeled crops left in {pull_dir / 'task.csv'}")
     crops = []
     for item_id in truth.item_id:
         row = task.loc[item_id]

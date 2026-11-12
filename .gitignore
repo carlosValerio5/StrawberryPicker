@@ -68,3 +68,11 @@ htmlcov/
 # Agent-local state (shared agent config is tracked)
 .claude/settings.local.json
 graphify-out/
+
+# Course deliverables — keep local; do not push
+/docs/entregas/
+/docs/_extract_*
+
+# Phone-set working copy: CSVs only (no WhatsApp / JPEG photos)
+/Fresas/**
+!/Fresas/*.csv
