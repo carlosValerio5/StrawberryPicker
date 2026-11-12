@@ -7,6 +7,10 @@ an undo is a new ``action=undo`` row. Several labelers can share one file.
 The server binds to 127.0.0.1 by default (``--lan`` in ``scripts/label.py`` opens it to the
 Wi-Fi network behind a random token) and serves one responsive page, usable by keyboard on
 a laptop or by touch on a phone, plus a tiny JSON API. Standard library and Pillow only.
+
+``multi_fruit`` ("several berries", key ``s``) is only offered when the server is started
+with ``multi_fruit=True`` (the multi-fruit review task). It was added after the first label
+files were written: those files keep their header, read as ``multi_fruit=False``.
 """
 
 from __future__ import annotations
@@ -44,6 +48,7 @@ LABEL_COLUMNS = (
     "unsure",
     "action",
     "labeled_at",
+    "multi_fruit",  # added later: older label files lack it (read as False)
 )
 CROP_PX = 448
 
@@ -55,22 +60,26 @@ class Label:
     defects: tuple[str, ...]
     not_fruit: bool = False
     unsure: bool = False
+    multi_fruit: bool = False  # the image shows several berries: not a single-fruit sample
 
 
 def parse_label(payload: dict[str, Any]) -> Label:
-    """Validate a label against the taxonomy. A real label (not ``n``/``u``) needs maturity."""
+    """Validate a label against the taxonomy. A real label (not n/u/s) needs a maturity."""
     not_fruit = bool(payload.get("not_fruit", False))
     unsure = bool(payload.get("unsure", False))
+    multi_fruit = bool(payload.get("multi_fruit", False))
     maturity = payload.get("maturity")
     if maturity is not None and maturity not in {m.value for m in Maturity}:
         raise ValueError(f"unknown maturity {maturity!r}")
-    if maturity is None and not (not_fruit or unsure):
-        raise ValueError("a label needs a maturity (or mark it not_fruit / unsure)")
+    if maturity is None and not (not_fruit or unsure or multi_fruit):
+        raise ValueError("a label needs a maturity (or mark it not_fruit / unsure / multi_fruit)")
+    if multi_fruit and maturity is not None:
+        raise ValueError("a 'several berries' label carries no maturity")
     defects = tuple(sorted(set(payload.get("defects") or ())))
     unknown = set(defects) - {d.value for d in Defect}
     if unknown:
         raise ValueError(f"unknown defect(s) {sorted(unknown)}")
-    return Label(str(payload["item_id"]), maturity, defects, not_fruit, unsure)
+    return Label(str(payload["item_id"]), maturity, defects, not_fruit, unsure, multi_fruit)
 
 
 def current_labels(rows: Iterable[Mapping[str, str]]) -> dict[tuple[str, str], Label]:
@@ -86,6 +95,7 @@ def current_labels(rows: Iterable[Mapping[str, str]]) -> dict[tuple[str, str], L
                 tuple(d for d in row["defects"].split("|") if d),
                 row["not_fruit"] == "True",
                 row["unsure"] == "True",
+                row.get("multi_fruit") == "True",
             )
     return current
 
@@ -97,11 +107,24 @@ class LabelStore:
         self.path = Path(path)
         self.labeler = labeler
 
+    def _header(self) -> tuple[str, ...]:
+        """The file's own columns: files written before ``multi_fruit`` keep their header."""
+        if not self.path.exists():
+            return LABEL_COLUMNS
+        with self.path.open(newline="") as handle:
+            return tuple(next(csv.reader(handle), LABEL_COLUMNS))
+
     def _append(self, row: dict[str, Any]) -> None:
         new = not self.path.exists()
+        header = self._header()
+        if row.get("multi_fruit") is True and "multi_fruit" not in header:
+            raise ValueError(
+                f"{self.path} predates the 'several berries' label; start a new labels file "
+                "(--out) for the multi-fruit task"
+            )
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=LABEL_COLUMNS)
+            writer = csv.DictWriter(handle, fieldnames=header, extrasaction="ignore")
             if new:
                 writer.writeheader()
             writer.writerow(row)
@@ -123,6 +146,7 @@ class LabelStore:
                 "unsure": label.unsure,
                 "action": "label",
                 "labeled_at": (now or datetime.now(UTC)).isoformat(),
+                "multi_fruit": label.multi_fruit,
             }
         )
 
@@ -192,12 +216,16 @@ def make_server(
     host: str = "127.0.0.1",
     port: int = 0,
     token: str | None = None,
+    multi_fruit: bool = False,
 ) -> ThreadingHTTPServer:
     """A labeling server; call ``serve_forever()`` and open ``http://host:port``.
 
     ``store.labeler`` is the default name; when it's ``None`` each client (e.g. a phone)
     sends its own ``labeler``. With ``token`` set, every request needs it: as ``?token=``
     on the first page load (then kept in an HttpOnly cookie) or an ``X-Token`` header.
+
+    ``multi_fruit`` offers the "several berries" key. Leave it off for per-box tasks such as
+    the phone set, where a box that isn't one berry is rejected with ``n``.
     """
     rows = task.set_index("item_id", drop=False)
     stores: dict[str, LabelStore] = {}
@@ -267,7 +295,14 @@ def make_server(
                         if not blind:
                             item["given"] = rows.loc[pending[0], "given"]
                     total = len(order)
-                    self._json({"item": item, "done": total - len(pending), "total": total})
+                    self._json(
+                        {
+                            "item": item,
+                            "done": total - len(pending),
+                            "total": total,
+                            "multi_fruit": multi_fruit,
+                        }
+                    )
                 elif path.startswith("/crop/") and path[6:] in rows.index:
                     self._send(HTTPStatus.OK, render_crop(rows.loc[path[6:]]), "image/jpeg")
                 else:
@@ -288,6 +323,8 @@ def make_server(
                     label = parse_label(payload)
                     if label.item_id not in rows.index:
                         raise ValueError(f"unknown item {label.item_id!r}")
+                    if label.multi_fruit and not multi_fruit:
+                        raise ValueError("this task has no 'several berries' label")
                     with write_lock:
                         labeler.record(label)
                     self._json({"ok": True})
@@ -363,18 +400,21 @@ details{color:var(--muted);font-size:14px}
 <button id="save" disabled>Save</button><button id="notfruit">Not a<br>strawberry</button>
 <button id="unsure">Unsure</button><button id="undo">Undo</button>
 </div>
+<div class="row"><button id="several" hidden>Several<br>berries<small>
+multi-fruit task: holds it out of gold; the source label is kept</small></button></div>
 <p id="msg"></p>
 <details><summary>Rules &amp; keys</summary>
 <p>Overripe = pink/red plus two or more of: dark red-purple, dull skin, wrinkled or sunken,
 slumped, leaking. Judge only the centred berry. Rubric: docs/labeling/rubric.md.</p>
 <p class="k">Keyboard: 1/2/3 maturity &middot; b m r d p c defects &middot; Enter save &middot;
-n not a strawberry &middot; u unsure &middot; Backspace undo</p>
+n not a strawberry &middot; u unsure &middot; s several berries (multi-fruit task)
+&middot; Backspace undo</p>
 <p id="me"></p></details>
 </section></main>
 <script>
 const KEYS={"1":"unripe","2":"ripe","3":"overripe"};
 const DEF={b:"bruise",m:"mold",r:"rot",d:"deformed",p:"pest_damage",c:"mechanical_damage"};
-let item=null, maturity=null, defects=new Set(), labeler=null;
+let item=null, maturity=null, defects=new Set(), labeler=null, multi=false;
 const $=id=>document.getElementById(id);
 function remember(n){try{localStorage.setItem("labeler",n)}catch(e){}}
 function recall(){try{return localStorage.getItem("labeler")}catch(e){return null}}
@@ -385,7 +425,8 @@ async function api(path,body){const r=await fetch(path,body?{method:"POST",
 headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.assign({labeler},body))}
 :{});const j=await r.json();$("msg").textContent=r.ok?"":(j.error||"error");return r.ok?j:null;}
 async function next(){const s=await api("/api/next?labeler="+encodeURIComponent(labeler||""));
-if(!s)return;item=s.item;maturity=null;defects=new Set();paint();
+if(!s)return;item=s.item;multi=s.multi_fruit;$("several").hidden=!multi;
+maturity=null;defects=new Set();paint();
 $("progress").textContent=s.done+" / "+s.total+" labeled";
 if(!item){$("crop").removeAttribute("src");$("msg").textContent="All done — thank you!";
 return;}$("crop").src="/crop/"+encodeURIComponent(item.item_id);
@@ -400,12 +441,14 @@ $("save").onclick=()=>send({});
 $("notfruit").onclick=()=>send({maturity:null,defects:[],not_fruit:true});
 $("unsure").onclick=()=>send({maturity:null,defects:[],unsure:true});
 $("undo").onclick=undo;
+$("several").onclick=()=>send({maturity:null,defects:[],multi_fruit:true});
 document.addEventListener("keydown",e=>{if(e.target.tagName==="INPUT")return;
 if(KEYS[e.key]){maturity=KEYS[e.key];paint();}
 else if(DEF[e.key]){const d=DEF[e.key];defects.has(d)?defects.delete(d):defects.add(d);paint();}
 else if(e.key==="Enter"&&maturity)send({});
 else if(e.key==="n")send({maturity:null,defects:[],not_fruit:true});
 else if(e.key==="u")send({maturity:null,defects:[],unsure:true});
+else if(e.key==="s"&&multi)send({maturity:null,defects:[],multi_fruit:true});
 else if(e.key==="Backspace"){e.preventDefault();undo();}});
 function start(name){labeler=name;$("who").style.display="none";
 $("me").textContent=name?"Labeling as "+name+".":"";next();}

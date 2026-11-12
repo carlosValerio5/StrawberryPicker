@@ -2,6 +2,7 @@
 
 Opens a page on http://127.0.0.1:<port>: tap the buttons, or use the keys 1/2/3 (maturity),
 b m r d p c (defects), Enter (save), n (not a strawberry), u (unsure), Backspace (undo).
+With --multi-fruit also s (several berries), on the multi-fruit review task.
 
 On a phone: add --lan, open the printed link on a phone on the same Wi-Fi, and type your
 name once. Each person labels under their own name. Stop with Ctrl-C; labels are saved as
@@ -34,6 +35,11 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--out", type=Path, help="labels CSV (default: next to the task)")
     parser.add_argument("--no-browser", action="store_true", help="don't open a browser tab")
+    parser.add_argument(
+        "--multi-fruit",
+        action="store_true",
+        help="offer the 's' several-berries key (the multi-fruit review task)",
+    )
     args = parser.parse_args()
 
     task = load_task(args.task)
@@ -46,7 +52,14 @@ def main() -> None:
     if args.lan:
         host, token = args.host or lan_address(), secrets.token_urlsafe(12)
     server = make_server(
-        task, store, blind=args.blind, order=order, host=host, port=args.port, token=token
+        task,
+        store,
+        blind=args.blind,
+        order=order,
+        host=host,
+        port=args.port,
+        token=token,
+        multi_fruit=args.multi_fruit,
     )
     url = f"http://{host}:{server.server_address[1]}/" + (f"?token={token}" if token else "")
     print(f"{len(order)} crops; labels -> {out}")

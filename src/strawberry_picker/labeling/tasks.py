@@ -30,3 +30,23 @@ def crop_task(silver: pd.DataFrame, bronze_dir: Path) -> pd.DataFrame:
             "group": rows.image_id,
         }
     )[list(TASK_COLUMNS)]
+
+
+def multi_fruit_task(
+    silver: pd.DataFrame, flags: pd.DataFrame, bronze_dir: Path, *, min_count: int = 2
+) -> pd.DataFrame:
+    """Whole-image rows the detector counts ``min_count``+ berries in, not yet reviewed.
+
+    ``flags`` comes from ``audit.multi_fruit.flag_multi_fruit``. The reviewer sees the whole
+    image and presses ``s`` (several berries) or labels the one berry it shows.
+    """
+    rows = with_crop_ids(silver)
+    counts = flags.set_index("crop_id").n_detected
+    flagged = rows.crop_id.map(counts).fillna(0) >= min_count
+    rows = rows[flagged & rows.reviewed_by.isna()]
+    task = crop_task(rows.drop(columns="crop_id"), bronze_dir)
+    n = task.item_id.map(counts).astype(int)
+    task["given"] = [
+        f"{given} (detector: {k} berries)".lstrip() for given, k in zip(task.given, n, strict=True)
+    ]
+    return task
