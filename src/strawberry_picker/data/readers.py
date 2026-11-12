@@ -16,7 +16,9 @@ from PIL import Image, ImageOps
 from strawberry_picker.data.sources import AnnotationFormat, SourceSpec
 
 BBox = tuple[float, float, float, float]
-IMAGE_SUFFIXES = frozenset({".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"})
+IMAGE_SUFFIXES = frozenset(
+    {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff", ".heic", ".heif"}
+)
 
 
 @dataclass(frozen=True, slots=True)
