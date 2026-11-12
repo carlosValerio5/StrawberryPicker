@@ -12,6 +12,7 @@ import logging
 import pandas as pd
 
 from strawberry_picker.audit.embeddings import cached_embeddings, dinov2_embedder
+from strawberry_picker.audit.neighbours import overlap_table, write_neighbour_report
 from strawberry_picker.audit.report import (
     audit_frame,
     run_audit,
@@ -19,6 +20,8 @@ from strawberry_picker.audit.report import (
     write_report,
     write_review_sheets,
 )
+from strawberry_picker.config import load_config
+from strawberry_picker.data.crops import CropPolicy
 from strawberry_picker.paths import Layer, layer_dir, reports_dir
 
 
@@ -37,6 +40,7 @@ def main() -> None:
     out = reports_dir() / "dataset-audit"
     out.mkdir(parents=True, exist_ok=True)
 
+    policy = CropPolicy.from_settings(load_config("data")["gold"])  # same crops as gold
     embeddings = cached_embeddings(
         frame,
         silver / "images",
@@ -44,16 +48,20 @@ def main() -> None:
         lambda: dinov2_embedder(args.model),
         model=args.model,
         batch_size=args.batch_size,
+        policy=policy,
     )
 
     result = run_audit(frame, embeddings, seed=args.seed)
     report = write_report(result, out)
+    manifest = pd.read_parquet(silver / "manifest.parquet")
+    neighbours = write_neighbour_report(overlap_table(manifest, policy), out, issues=result.issues)
     bronze = layer_dir(Layer.BRONZE)
     sheets = write_review_sheets(result, frame, bronze, out, top_k=args.top_k)
     samples = write_random_sample_sheets(frame, bronze, out, n=args.sample, seed=args.seed)
     print(report.read_text())
     print("review sheets:", ", ".join(str(p) for p in sheets.values()))
     print("random samples:", ", ".join(str(p) for p in samples.values()))
+    print("neighbour overlap:", neighbours)
 
 
 if __name__ == "__main__":

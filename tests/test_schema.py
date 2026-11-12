@@ -57,4 +57,11 @@ def test_contract_doc_mentions_gold_columns(value: str) -> None:
 
 
 def test_gold_adds_split_and_crop_columns() -> None:
-    assert GOLD_COLUMNS[len(SILVER_COLUMNS) :] == ("split", "crop_id", "crop_path")
+    assert GOLD_COLUMNS[len(SILVER_COLUMNS) :] == (
+        "split",
+        "crop_id",
+        "crop_path",
+        "neighbour_bboxes",
+        "neighbour_overlap",
+        "crop_policy",
+    )

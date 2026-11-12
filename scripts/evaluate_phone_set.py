@@ -15,6 +15,7 @@ from pathlib import Path
 from strawberry_picker.audit.embeddings import dinov2_embedder
 from strawberry_picker.config import load_config
 from strawberry_picker.data.bronze import latest_pull
+from strawberry_picker.data.crops import resolve_policy
 from strawberry_picker.evaluation.phone_set import evaluate_pull, load_pull_labels, unresolved_items
 from strawberry_picker.labeling.tool import load_task, write_task
 from strawberry_picker.models.linear_probe import load_probe
@@ -51,6 +52,7 @@ def main() -> None:
         dinov2_embedder(config["model"]["backbone"]),
         config["classes"],
         n_resamples=config["eval"]["bootstrap_resamples"],
+        crop_policy=resolve_policy(config),  # crop the way the model was trained (ADR 0008)
     )
     out = reports_dir() / "phone-eval" / run.name
     out.mkdir(parents=True, exist_ok=True)

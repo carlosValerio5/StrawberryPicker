@@ -16,8 +16,19 @@ from typing import Any
 import pandas as pd
 from PIL import Image
 
+from strawberry_picker.data.crops import (
+    POLICY_FILE,
+    CropPolicy,
+    SegmentFn,
+    crop_box,
+    crop_fruit,
+    neighbour_overlap,
+    with_neighbours,
+)
 from strawberry_picker.paths import Layer, layer_dir
 from strawberry_picker.schema import GOLD_COLUMNS, Defect, Grade, Maturity, grade_from_defects
+
+__all__ = ["SPLITS", "GoldTask", "assign_splits", "build_gold", "crop_box", "dataset_dir"]
 
 _VERSION_NAME = re.compile(r"^[a-z]+_(cls|det|seg)_v\d+\.\d+$")
 
@@ -34,30 +45,6 @@ def dataset_dir(name: str) -> Path:
     if not _VERSION_NAME.match(name):
         raise ValueError(f"gold dataset name must look like 'maturity_cls_v1.0', got {name!r}")
     return layer_dir(Layer.GOLD) / name
-
-
-def crop_box(
-    bbox: Iterable[float] | None, width: int, height: int, padding: float = 0.15
-) -> tuple[int, int, int, int]:
-    """Square crop around a fruit with ``padding`` × its longest side of context on each side.
-
-    The square is shifted to stay inside the image, and clipped when it can't fit.
-    ``bbox=None`` (single-fruit image) returns the whole image.
-    """
-    if bbox is None:
-        return (0, 0, width, height)
-    x0, y0, x1, y1 = bbox
-    side = max(x1 - x0, y1 - y0) * (1 + 2 * padding)
-
-    def axis(center: float, limit: int) -> tuple[int, int]:
-        if side >= limit:
-            return 0, limit
-        start = round(min(max(center - side / 2, 0), limit - side))
-        return start, min(limit, start + round(side))
-
-    left, right = axis((x0 + x1) / 2, width)
-    top, bottom = axis((y0 + y1) / 2, height)
-    return (left, top, right, bottom)
 
 
 def _validate_ratios(ratios: Mapping[str, float]) -> None:
@@ -114,9 +101,35 @@ def _stats(rows: pd.DataFrame, task: GoldTask) -> dict[str, dict[str, Any]]:
     return stats
 
 
+def _dropped_stats(dropped: pd.DataFrame) -> dict[str, int]:
+    counts = dropped["split"].value_counts() if len(dropped) else pd.Series(dtype=int)
+    return {"total": len(dropped), **{s: int(counts[s]) for s in SPLITS if s in counts}}
+
+
 def _dataset_card(
-    name: str, rows: pd.DataFrame, stats: dict[str, Any], settings: dict[str, Any], now: datetime
+    name: str,
+    rows: pd.DataFrame,
+    stats: dict[str, Any],
+    settings: dict[str, Any],
+    now: datetime,
+    dropped: pd.DataFrame,
 ) -> str:
+    overlap = rows["neighbour_overlap"]
+    crops = [
+        "## Crops (ADR 0008)",
+        "",
+        f"Policy: `{settings['crop_policy']}` (also in `{POLICY_FILE}`).",
+        "",
+        f"- crops with a neighbour in view: {int((overlap > 0).sum())} of {len(rows)}",
+        f"- crops with neighbour overlap > 10 %: {int((overlap > 0.10).sum())}",
+        f"- crops with neighbour overlap > 25 %: {int((overlap > 0.25).sum())}",
+        "",
+        "### Dropped crops",
+        "",
+        f"{len(dropped)} crops were left out by the `drop` policy; they are listed with their "
+        "overlap in `dropped.parquet`.",
+        "",
+    ]
     sources = (
         rows.groupby(["source_name", "license", "commercial_use"]).size().reset_index(name="rows")
     )
@@ -138,6 +151,7 @@ def _dataset_card(
             for s in sources.itertuples()
         ),
         "",
+        *crops,
         "## Splits",
         "",
         "```json",
@@ -158,16 +172,21 @@ def build_gold(
     ratios: Mapping[str, float],
     seed: int,
     padding: float = 0.15,
+    policy: CropPolicy | None = None,
+    segment_fn: SegmentFn | None = None,
     commercial_only: bool = False,
     jpeg_quality: int = 95,
     now: datetime | None = None,
 ) -> Path:
     """Release ``data/gold/<task>_v<version>`` from the current silver manifest.
 
-    Rows that need human review, or lack the task's label, are left out. Raises
-    ``FileExistsError`` if that version was already released — versions are immutable.
+    Rows that need human review, or lack the task's label, are left out. Crops are cut
+    with ``policy`` (default: ``keep`` with ``padding``); every row records its neighbour
+    overlap, and crops the ``drop`` policy leaves out are listed in ``dropped.parquet``.
+    Raises ``FileExistsError`` if that version was already released — versions are immutable.
     """
     task = GoldTask(task)
+    policy = policy or CropPolicy(padding=padding)
     out = dataset_dir(f"{task.value}_v{version}")
     _validate_ratios(ratios)
     if out.exists():
@@ -179,6 +198,9 @@ def build_gold(
     manifest["crop_id"] = (
         manifest["image_id"] + "_" + manifest.groupby("image_id").cumcount().astype(str)
     )
+    # Neighbours come from every silver box, including rows this task leaves out.
+    manifest = with_neighbours(manifest)
+    manifest["crop_policy"] = policy.to_json()
     rows = _select(manifest, task, commercial_only)
     if rows.empty:
         raise ValueError(f"no rows in the silver manifest are usable for {task.value}")
@@ -192,28 +214,43 @@ def build_gold(
     shutil.rmtree(partial, ignore_errors=True)
     partial.mkdir(parents=True)
     try:
+        overlaps: dict[Any, float] = {}
         for image_id, fruits in rows.groupby("image_id", sort=False):
             with Image.open(silver / "images" / f"{image_id}.jpg") as image:
                 image = image.convert("RGB")
-            for fruit in fruits.itertuples():
+            for index, fruit in zip(fruits.index, fruits.itertuples(), strict=True):
                 bbox = None if fruit.bbox is None else tuple(fruit.bbox)
+                box = crop_box(bbox, image.width, image.height, policy.padding)
+                overlaps[index] = neighbour_overlap(box, bbox, fruit.neighbour_bboxes)
+                if not policy.keeps(overlaps[index]):
+                    continue
                 target = partial / fruit.crop_path
                 target.parent.mkdir(parents=True, exist_ok=True)
-                image.crop(crop_box(bbox, image.width, image.height, padding)).save(
-                    target, quality=jpeg_quality
+                crop = crop_fruit(
+                    image, bbox, fruit.neighbour_bboxes, policy, segment_fn=segment_fn
                 )
+                crop.save(target, quality=jpeg_quality)
 
-        rows = rows[list(GOLD_COLUMNS)].reset_index(drop=True)
+        rows["neighbour_overlap"] = pd.Series(overlaps, dtype=float)
+        kept = rows["neighbour_overlap"].map(policy.keeps).astype(bool)
+        dropped = rows[~kept][list(GOLD_COLUMNS)].reset_index(drop=True)
+        rows = rows[kept][list(GOLD_COLUMNS)].reset_index(drop=True)
         rows.to_parquet(partial / "manifest.parquet", index=False)
-        stats = _stats(rows, task)
+        if len(dropped):
+            dropped.to_parquet(partial / "dropped.parquet", index=False)
+        (partial / POLICY_FILE).write_text(policy.to_json() + "\n")
+        stats = {**_stats(rows, task), "dropped": _dropped_stats(dropped)}
         (partial / "stats.json").write_text(json.dumps(stats, indent=2) + "\n")
         settings = {
             "ratios": dict(ratios),
             "seed": seed,
-            "padding": padding,
+            "padding": policy.padding,  # kept for readers that predate crop_policy
+            "crop_policy": policy.to_json(),
             "commercial_only": commercial_only,
         }
-        card = _dataset_card(out.name, rows, stats, settings, now or datetime.now(UTC))
+        card = _dataset_card(
+            out.name, rows, stats, settings, now or datetime.now(UTC), dropped=dropped
+        )
         (partial / "DATASET_CARD.md").write_text(card)
         partial.rename(out)
     except BaseException:

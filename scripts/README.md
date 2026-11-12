@@ -11,6 +11,7 @@ Thin command-line entry points. Each script parses arguments, loads a config wit
 | `build_silver.py` | Rebuild `data/silver/` from every enabled source |
 | `build_gold.py <task> <version>` | Release an immutable gold dataset |
 | `dataset_audit.py` | Statistical audit, review lists and random samples → `reports/dataset-audit/` |
+| `crop_overlap.py` | How much of each crop shows other berries, per source and label (silver only, no ml extra) → `reports/dataset-audit/neighbours/` (ADR 0008) |
 | `make_label_task.py <kind>` | Turn a backlog (`overripe`, `needs-review`, `random-sample`, `flagged`) into a labeling task |
 | `label.py <task.csv> --labeler <you>` | Labeling page on 127.0.0.1, by keyboard or touch (`--blind`, `--sample 50`). `--lan` serves it to phones on the same Wi-Fi behind a fresh token; each phone enters its own name |
 | `ingest_reviews.py labels_*.csv` | Land finished labels in `bronze/human_review/`; the next `build_silver.py` applies them |
