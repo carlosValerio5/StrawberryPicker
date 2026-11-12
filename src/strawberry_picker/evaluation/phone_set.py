@@ -115,7 +115,7 @@ def evaluate_pull(
 ) -> dict[str, Any]:
     """Score ``probe`` on a labeled phone pull and check every ADR 0005 bar.
 
-    Crops are cut with the policy the model was trained with (``resolve_policy``, ADR 0008);
+    Crops are cut with the policy the model was trained with (``resolve_policy``, ADR 0011);
     the other kept boxes of the same photo are its neighbours.
     """
     task = load_task(pull_dir / "task.csv").set_index("item_id")

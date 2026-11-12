@@ -47,7 +47,7 @@ def test_embed_crops_crops_batches_and_keeps_order(tmp_path) -> None:
     assert vectors[1, 2] > 200 and vectors[1, 0] < 50  # right crop is blue
 
 
-# --- crop policy (ADR 0008) -------------------------------------------------------------
+# --- crop policy (ADR 0011) -------------------------------------------------------------
 
 
 def _red_and_blue(tmp_path) -> None:

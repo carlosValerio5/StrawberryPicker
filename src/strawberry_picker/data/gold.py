@@ -116,7 +116,7 @@ def _dataset_card(
 ) -> str:
     overlap = rows["neighbour_overlap"]
     crops = [
-        "## Crops (ADR 0008)",
+        "## Crops (ADR 0011)",
         "",
         f"Policy: `{settings['crop_policy']}` (also in `{POLICY_FILE}`).",
         "",

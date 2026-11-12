@@ -19,7 +19,7 @@ def main() -> None:
     args = parser.parse_args()
 
     settings = load_config("data")["gold"]
-    policy = CropPolicy.from_settings(settings)  # ADR 0008: crop_padding + crop_neighbours
+    policy = CropPolicy.from_settings(settings)  # ADR 0011: crop_padding + crop_neighbours
     out = build_gold(
         args.task,
         args.version,

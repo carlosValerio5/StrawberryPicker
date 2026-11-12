@@ -2,7 +2,7 @@
 
 ``embed_crops`` takes any ``embed_fn(list[Image]) -> (n, d) array``, so tests use a fake
 and the audit uses ``dinov2_embedder``. Crops go through the same ``CropPolicy`` as gold
-(ADR 0008): a row's ``neighbour_bboxes`` are masked when the policy says so.
+(ADR 0011): a row's ``neighbour_bboxes`` are masked when the policy says so.
 """
 
 from __future__ import annotations
@@ -114,7 +114,7 @@ def cached_embeddings(
     The cache (``crop_id, model, crop, embedding``) keeps every model's and every crop
     policy's vectors side by side, so a masked release never reuses unmasked vectors.
     Without ``policy``, a gold manifest's ``crop_policy`` column decides; otherwise the
-    legacy ``keep`` crop. Caches written before ADR 0008 hold legacy crops.
+    legacy ``keep`` crop. Caches written before ADR 0011 hold legacy crops.
     ``embed_factory`` is only called when something is missing, so loading weights is lazy.
     """
     policy = (policy or _frame_policy(frame)).for_evaluation()

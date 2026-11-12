@@ -1,4 +1,4 @@
-"""Neighbour overlap in training crops (ADR 0008): uv run python scripts/crop_overlap.py.
+"""Neighbour overlap in training crops (ADR 0011): uv run python scripts/crop_overlap.py.
 
 Needs only the silver manifest: no images, no model, no ml extra. If an earlier
 `scripts/dataset_audit.py` run left out-of-fold predictions in

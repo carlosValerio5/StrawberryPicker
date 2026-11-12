@@ -1,4 +1,4 @@
-# TDD evidence: crop isolation (ADR 0008)
+# TDD evidence: crop isolation (ADR 0011)
 
 - **Source plan:** "next steps" 1, 3 and 5, approved in chat on 2026-11-04.
 - **Branch:** `feat/crop-isolation`.
@@ -42,7 +42,7 @@
 ## Not done (needs real data)
 
 - The overlap numbers per source, and the error-by-overlap table, on the real silver layer.
-- The ADR 0008 comparison: one gold release per policy, scored on the Kamat proxy.
+- The ADR 0011 comparison: one gold release per policy, scored on the Kamat proxy.
 - `segment`: the SAM weights (~375 MB) were never downloaded. Only the gold build passes a
   segmenter. Embedding and phone-set evaluation raise a clear error under `segment` until
   that's wired in.

@@ -1,4 +1,4 @@
-# 0008 — Isolate the target berry in each crop
+# 0011 — Isolate the target berry in each crop
 
 - **Status:** proposed. The policy is chosen by the comparison below, before any
   phone-set result exists (ADR 0005 §F).

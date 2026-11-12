@@ -1,4 +1,4 @@
-"""Crop geometry: the one place that decides which pixels a fruit's crop contains (ADR 0008).
+"""Crop geometry: the one place that decides which pixels a fruit's crop contains (ADR 0011).
 
 Detection sources put several berries in one photo, and a padded square around one berry
 often shows part of its neighbours. A :class:`CropPolicy` says what to do about them:
@@ -108,7 +108,7 @@ class CropPolicy:
         return self
 
 
-LEGACY_POLICY = CropPolicy()  # how every release cut before ADR 0008 was cropped
+LEGACY_POLICY = CropPolicy()  # how every release cut before ADR 0011 was cropped
 
 
 # --- geometry ---------------------------------------------------------------------------
@@ -254,7 +254,7 @@ def resolve_policy(run_config: Mapping[str, Any] | None) -> CropPolicy:
     """The crop policy a training run used, so evaluation can cut test crops the same way.
 
     Order: an explicit ``crop_policy`` in the run's resolved config; else the
-    ``crop_policy.json`` of its gold ``dataset``; a release older than ADR 0008 (no file)
+    ``crop_policy.json`` of its gold ``dataset``; a release older than ADR 0011 (no file)
     used :data:`LEGACY_POLICY`; with no run or release, ``configs/data.yaml``.
     """
     config = run_config or {}

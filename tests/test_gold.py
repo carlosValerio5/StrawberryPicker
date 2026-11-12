@@ -179,7 +179,7 @@ def test_build_writes_stats_and_card(silver_rows) -> None:
     card = (out / "DATASET_CARD.md").read_text()
     for expected in ("maturity_cls_v0.1", "toy", "CC-BY-4.0", "CC-BY-NC-4.0", "seed"):
         assert expected in card
-    # Runs trained before ADR 0008 recover their crop padding from this line.
+    # Runs trained before ADR 0011 recover their crop padding from this line.
     assert "- **padding**: `0.15`" in card
 
 
@@ -258,7 +258,7 @@ def test_failed_build_leaves_nothing_behind(silver_rows, tmp_data_dir) -> None:
     assert list((tmp_data_dir / "gold").iterdir()) == []  # no release, no .partial
 
 
-# --- crop policy (ADR 0008) -------------------------------------------------------------
+# --- crop policy (ADR 0011) -------------------------------------------------------------
 
 
 @pytest.fixture

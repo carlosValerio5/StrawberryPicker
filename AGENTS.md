@@ -43,7 +43,7 @@ src/strawberry_picker/
     sources.py             registry parsing; readers.py (imagefolder/YOLO/COCO); dedup.py (dHash)
     reviews.py             human review labels (bronze/human_review) applied to silver on rebuild
     crops.py               ONLY place for crop geometry: crop_box, CropPolicy (keep/mask/drop/
-                           segment), neighbour overlap (ADR 0008). Crop through crop_fruit
+                           segment), neighbour overlap (ADR 0011). Crop through crop_fruit
   audit/                   dataset audits → reports/dataset-audit/: contact_sheets.py (raw bronze),
                            embeddings.py, label_issues.py (confident learning), probes.py, report.py,
                            neighbours.py (neighbour overlap per crop, error by overlap)

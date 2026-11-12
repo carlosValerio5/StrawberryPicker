@@ -52,7 +52,7 @@ def main() -> None:
         dinov2_embedder(config["model"]["backbone"]),
         config["classes"],
         n_resamples=config["eval"]["bootstrap_resamples"],
-        crop_policy=resolve_policy(config),  # crop the way the model was trained (ADR 0008)
+        crop_policy=resolve_policy(config),  # crop the way the model was trained (ADR 0011)
     )
     out = reports_dir() / "phone-eval" / run.name
     out.mkdir(parents=True, exist_ok=True)
