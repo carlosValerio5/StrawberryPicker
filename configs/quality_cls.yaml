@@ -1,7 +1,7 @@
 # Baseline defect head: one linear probe per defect on frozen DINOv2-small crop embeddings
 # (scripts/train_quality.py, ADR 0010). The grade is derived by rule, never learned.
 task: quality_cls
-dataset: quality_cls_v0.1           # gold release under data/gold/ (scripts/build_gold.py)
+dataset: quality_cls_v0.2           # gold release under data/gold/ (scripts/build_gold.py)
 defects: [bruise, mold, rot, deformed, pest_damage, mechanical_damage]   # data contract §2a
 
 model:
