@@ -145,3 +145,22 @@ sources:
       fruit: drop # Roboflow supercategory, id 0; no annotations use it
       Blossom Blight: drop
     notes: 2,459 original images; leaf and flower classes are out of scope.
+
+  owner_phone_2026:
+    # Project's own capture (owner's iPhone, HEIC). One session on 2026-11-10 (one photo
+    # 2026-11-08): photos of the same berries can land in different splits, so in-distribution
+    # scores on this source are optimistic. The cross-source Kamat proxy is the honest number.
+    title: "Owner iPhone photos (project capture, 2026-11-10)"
+    url: https://github.com/carlosValerio5/StrawberryPicker # project's own capture (photos stay out of git)
+    license: project-owned
+    commercial_use: true
+    format: imagefolder
+    root: Fresas
+    group_by: image
+    box_proposals: {source: owlv2_boxes, min_score: 0.3} # ADR 0008: one confident box -> crop
+    labels:
+      overripe: {maturity: overripe} # sorted by the owner; defects not assessed
+      "defective ": {needs_review: true} # trailing space is in the folder name; owner labels defects by hand
+    notes: >-
+      94 overripe photos (mostly one berry each) and 57 'defective' photos (mixed defect
+      types, labelled later by hand). 3 file names appear in both folders.

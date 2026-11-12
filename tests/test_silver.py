@@ -284,3 +284,29 @@ def test_build_silver_uses_box_proposals_and_holds_piles(
     )
     again = build_silver({"toy_boxed": spec}, **BUILD_KWARGS).manifest.set_index("bronze_path")
     assert again.loc[f"{prefix}/pile.png"].needs_review  # a review can't make a pile one berry
+
+
+def test_box_proposals_fall_back_to_an_older_pull(tmp_data_dir, make_image, make_spec) -> None:
+    """A newer owlv2 pull for another source must not hide this source's older proposals."""
+    pull = tmp_data_dir / "bronze" / "toy_old" / "2026-11-02"
+    make_image(pull / "Ripe" / "one.png", seed=21)
+    old = tmp_data_dir / "bronze" / "owlv2_boxes" / "2026-11-02"
+    old.mkdir(parents=True)
+    pd.DataFrame(
+        [("toy_old/2026-11-02/Ripe/one.png", 0.9, 4.0, 4.0, 30.0, 30.0)],
+        columns=["bronze_path", "score", "x0", "y0", "x1", "y1"],
+    ).to_csv(old / "toy_old.csv", index=False)
+    new = tmp_data_dir / "bronze" / "owlv2_boxes" / "2026-11-12"
+    new.mkdir(parents=True)
+    pd.DataFrame(columns=["bronze_path", "score", "x0", "y0", "x1", "y1"]).to_csv(
+        new / "other_source.csv", index=False
+    )
+    spec = make_spec(
+        "toy_old",
+        labels={"Ripe": {"maturity": "ripe", "defects": []}},
+        box_proposals={"source": "owlv2_boxes", "min_score": 0.3},
+    )
+
+    rows = build_silver({"toy_old": spec}, **BUILD_KWARGS).manifest
+
+    assert list(rows.iloc[0].bbox) == [4.0, 4.0, 30.0, 30.0]

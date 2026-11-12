@@ -114,6 +114,7 @@ def test_repo_registry_only_enables_verified_sources() -> None:
         "riseholme_2021",
         "strawberry_ds_2023",
         "strawberry_disease_2025",
+        "owner_phone_2026",  # owner iPhone photos, sorted by folder (datasheet)
     }
 
 

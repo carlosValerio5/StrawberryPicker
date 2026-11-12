@@ -59,9 +59,17 @@ def _apply_box_proposals(
     by_image: dict[Path, list[Annotation]], spec: SourceSpec, bronze: Path
 ) -> tuple[dict[Path, list[Annotation]], set[str]]:
     """Tight boxes for single-berry images; bronze paths of piles and empty images."""
-    pulls = all_pulls(spec.box_proposals.source)
-    path = pulls[-1] / f"{spec.name}.csv" if pulls else None
-    if path is None or not path.exists():
+    # Newest pull that holds this source's file: a later pull of the proposer (e.g. for a
+    # new source) must not hide the proposals an older pull still has for this one.
+    path = next(
+        (
+            p / f"{spec.name}.csv"
+            for p in reversed(all_pulls(spec.box_proposals.source))
+            if (p / f"{spec.name}.csv").is_file()
+        ),
+        None,
+    )
+    if path is None:
         logger.warning("%s: no box proposals found; whole images are used", spec.name)
         return by_image, set()
     proposals = pd.read_csv(path)

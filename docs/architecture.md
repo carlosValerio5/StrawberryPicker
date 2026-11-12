@@ -40,6 +40,12 @@ Check licenses before adopting. Code and weights can have different licenses.
 | Crop isolation | SAM (`facebook/sam-vit-base`, HF `transformers`) | Apache-2.0 (code and weights) | Box-prompted masks for the `segment` crop policy (ADR 0011); `data.crops.sam_segmenter` |
 | Label-error audit | Confident learning, own code in `audit/label_issues.py` | — | `cleanlab` is **AGPL-3.0**, so not a dependency; the method is ~30 lines (Northcutt et al. 2021) |
 
+## Runtime dependency licenses
+
+| Dependency | Role | License | Notes |
+|------------|------|---------|-------|
+| `pi-heif` 1.4.0 | Decodes iPhone HEIC/HEIF photos (registers with Pillow) | BSD-3-Clause (wrapper code) | Decode-only. Its binary wheels bundle **libheif** and **libde265**, both **LGPL-3.0** (dynamic libraries, per the wheel's `LICENSES_bundled.txt`). Chosen over `pillow-heif`, whose wheels bundle x265 (GPL). Added with `owner_phone_2026` |
+
 ## Suggested milestones
 
 1. Ingest 1–2 public strawberry ripeness datasets into bronze, then build silver and `maturity_cls_v0.1` gold.
