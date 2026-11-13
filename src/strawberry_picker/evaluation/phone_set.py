@@ -25,6 +25,7 @@ from strawberry_picker.data.crops import LEGACY_POLICY, CropPolicy, crop_fruit
 from strawberry_picker.evaluation.maturity import evaluate_maturity
 from strawberry_picker.evaluation.metrics import bootstrap_ci, krippendorff_alpha
 from strawberry_picker.labeling.tool import LABEL_COLUMNS, Label, current_labels, load_task
+from strawberry_picker.models.defect_probe import evaluate_quality, reject_verdict
 from strawberry_picker.models.linear_probe import predict_all_classes
 from strawberry_picker.schema import Maturity
 
@@ -113,11 +114,14 @@ def evaluate_pull(
     n_resamples: int = 2000,
     seed: int = 0,
     crop_policy: CropPolicy = LEGACY_POLICY,
+    defect_head: Any | None = None,
 ) -> dict[str, Any]:
     """Score ``probe`` on a labeled phone pull and check every ADR 0005 bar.
 
     Crops are cut with the policy the model was trained with (``resolve_policy``, ADR 0011);
-    the other kept boxes of the same photo are its neighbours.
+    the other kept boxes of the same photo are its neighbours. With ``defect_head`` (a
+    ``DefectHead`` sharing the probe's embeddings), the report adds per-defect precision and
+    recall plus reject recall and precision, and check C (ADR 0005 §C) gets its verdict.
     """
     task = load_task(pull_dir / "task.csv").set_index("item_id")
     labels = load_pull_labels(pull_dir)
@@ -129,11 +133,22 @@ def evaluate_pull(
         with Image.open(row.image_path) as raw:
             image = ImageOps.exif_transpose(raw).convert("RGB")
         crops.append(crop_fruit(image, _box(row.bbox), _neighbours(task, labels, item_id), policy))
-    probs = predict_all_classes(probe, embed_fn(crops), len(classes))
+    features = embed_fn(crops)
+    probs = predict_all_classes(probe, features, len(classes))
     codes = truth.maturity.map({name: k for k, name in enumerate(classes)}).to_numpy()
     groups = truth.group.to_numpy()
     metrics = evaluate_maturity(probs, codes, groups, classes, n_resamples=n_resamples, seed=seed)
     predicted = dict(zip(truth.item_id, probs.argmax(axis=1), strict=True))
+    quality = None
+    if defect_head is not None:
+        quality = evaluate_quality(
+            defect_head.predict(features),
+            [list(d) for d in truth.defects],
+            groups,
+            defect_head.defects,
+            n_resamples=n_resamples,
+            seed=seed,
+        )
 
     agreement = labeler_agreement(labels)
     votes = _votes(labels)
@@ -206,15 +221,16 @@ def evaluate_pull(
             "passed": bool(metrics["ece"] <= MAX_ECE),
         }
     )
-    checks.append(
-        {
-            "id": "C",
-            "rule": "reject (mold/rot) recall >= 0.80",
-            "value": None,
-            "passed": None,
-            "note": "no defect model yet",
+    c: dict[str, Any] = {"id": "C", "rule": "reject (mold/rot) recall >= 0.80"}
+    if quality is None:
+        c |= {"value": None, "passed": None, "note": "no defect run given"}
+    else:
+        recall = quality["reject_recall"]
+        c |= {
+            "value": recall,
+            "passed": None if recall["point"] is None else reject_verdict(quality),
         }
-    )
+    checks.append(c)
 
     results = [c["passed"] for c in checks]
     verdict = (
@@ -222,13 +238,16 @@ def evaluate_pull(
         if False in results
         else ("pass" if all(r is True for r in results) else "incomplete")
     )
-    return {
+    report = {
         "agreement": agreement,
         "metrics": metrics,
         "checks": checks,
         "verdict": verdict,
         "crop_policy": policy.to_dict(),
     }
+    if quality is not None:
+        report["quality"] = quality
+    return report
 
 
 def _box(value: str) -> list[float] | None:

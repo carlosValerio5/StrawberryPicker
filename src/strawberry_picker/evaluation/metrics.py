@@ -76,6 +76,19 @@ def per_class_recall(truth: np.ndarray, predicted: np.ndarray, *, n_classes: int
     )
 
 
+def per_class_precision(truth: np.ndarray, predicted: np.ndarray, *, n_classes: int) -> np.ndarray:
+    """Precision per class: of the items called ``k``, the share that were ``k``.
+
+    ``NaN`` for a class the model never predicted.
+    """
+    return np.array(
+        [
+            (truth[predicted == k] == k).mean() if (predicted == k).any() else np.nan
+            for k in range(n_classes)
+        ]
+    )
+
+
 def expected_calibration_error(probs: np.ndarray, truth: np.ndarray, *, n_bins: int = 15) -> float:
     """Top-label ECE over ``n_bins`` equal-width confidence bins."""
     confidence = probs.max(axis=1)

@@ -54,6 +54,13 @@ def test_evaluate_maturity_reports_adr_0005_numbers() -> None:
     assert qwk["low"] <= qwk["point"] <= qwk["high"]
     assert 0 <= report["ece"] <= 1
     assert report["confusion"] == [[3, 1, 0], [1, 3, 0], [0, 0, 0]]
+    # precision: of the berries called a class, how many were that class
+    assert report["precision"]["unripe"]["point"] == pytest.approx(0.75)
+    assert report["precision"]["ripe"]["point"] == pytest.approx(0.75)
+    assert report["precision"]["overripe"]["point"] is None  # never predicted
+    unripe = report["precision"]["unripe"]
+    assert unripe["low"] <= unripe["point"] <= unripe["high"]
+    assert report["macro_f1"] == pytest.approx(0.75)
     json.dumps(report)  # must be serialisable to metrics.json
 
 

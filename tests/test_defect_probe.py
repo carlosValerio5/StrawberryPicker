@@ -192,6 +192,8 @@ def test_evaluate_quality_reports_adr_0005_c_numbers() -> None:
     assert rot["n_positive"] == 2 and mold["n_positive"] == 2
     # Reject truth: rows 0, 1, 4. Predicted reject: rows 0, 2, 4 → recall 2/3.
     assert report["reject_recall"]["point"] == pytest.approx(2 / 3)
+    # Of the 3 called reject (rows 0, 2, 4), 2 were reject → precision 2/3.
+    assert report["reject_precision"]["point"] == pytest.approx(2 / 3)
     low, high = report["reject_recall"]["low"], report["reject_recall"]["high"]
     assert low <= report["reject_recall"]["point"] <= high
     assert report["grade_confusion"]["labels"] == ["premium", "standard", "reject"]
