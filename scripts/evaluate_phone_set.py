@@ -1,7 +1,10 @@
 """The ADR 0005 verdict on the locked phone set: uv run python scripts/evaluate_phone_set.py.
 
-Uses the newest model run (models/maturity_cls/*) and the newest bronze phone_testset pull
-unless --run / --pull say otherwise. Writes reports/phone-eval/<run_id>/verdict.json.
+Uses the newest maturity run (models/maturity_cls/*), the newest defect run
+(models/quality_cls/*) and the newest bronze phone_testset pull unless --run / --quality-run /
+--pull say otherwise; --no-quality skips the defect head (check C is then n/a).
+Writes reports/phone-eval/<run_id>/verdict.json: per-class precision and recall, macro-F1,
+the confusion matrix, ECE, per-defect precision/recall and reject recall/precision.
 If labelers still disagree somewhere, writes adjudication.csv in the pull's working copy
 folder instead (label it with: scripts/label.py adjudication.csv --labeler adjudicated).
 """
@@ -26,6 +29,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run", type=Path, help="model run folder (default: newest)")
     parser.add_argument("--pull", type=Path, help="phone pull or working folder (default: newest)")
+    parser.add_argument("--quality-run", type=Path, help="defect run folder (default: newest)")
+    parser.add_argument("--no-quality", action="store_true", help="skip the defect head")
     args = parser.parse_args()
 
     runs = sorted((models_dir() / "maturity_cls").glob("*/probe.joblib"))
@@ -46,6 +51,18 @@ def main() -> None:
         return
 
     config = load_config(run / "config.yaml")
+    defect_head = None
+    if not args.no_quality:
+        quality_runs = sorted((models_dir() / "quality_cls").glob("*/probe.joblib"))
+        quality_run = args.quality_run or (quality_runs[-1].parent if quality_runs else None)
+        if quality_run is not None:
+            quality_config = load_config(quality_run / "config.yaml")
+            if quality_config["model"]["backbone"] != config["model"]["backbone"]:
+                parser.error(f"{quality_run} uses a different backbone than {run}")
+            if resolve_policy(quality_config).to_json() != resolve_policy(config).to_json():
+                parser.error(f"{quality_run} crops differently than {run} (ADR 0011)")
+            defect_head = load_probe(quality_run)
+            print(f"defect head: {quality_run}")
     report = evaluate_pull(
         pull,
         load_probe(run),
@@ -53,6 +70,7 @@ def main() -> None:
         config["classes"],
         n_resamples=config["eval"]["bootstrap_resamples"],
         crop_policy=resolve_policy(config),  # crop the way the model was trained (ADR 0011)
+        defect_head=defect_head,
     )
     out = reports_dir() / "phone-eval" / run.name
     out.mkdir(parents=True, exist_ok=True)
