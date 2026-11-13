@@ -130,6 +130,70 @@ def test_evaluate_pull_gives_an_adr_0005_verdict(tmp_path) -> None:
     assert report["verdict"] == "incomplete"  # a class with no examples blocks a full pass
 
 
+class _FakeDefectHead:
+    """Calls ``rot`` on reddish crops (the left berry of each photo)."""
+
+    defects = ("mold", "rot")
+
+    def predict(self, features: np.ndarray) -> list[tuple[str, ...]]:
+        return [("rot",) if red > green else () for red, green, _ in features]
+
+
+def test_evaluate_pull_scores_the_defect_head_on_the_phone_set(tmp_path) -> None:
+    from PIL import Image
+
+    from strawberry_picker.evaluation.phone_set import evaluate_pull
+
+    pull = tmp_path / "pull"
+    pull.mkdir()
+    rows = []
+    for p in range(6):
+        image = Image.new("RGB", (80, 40), (230, 20, 20))
+        image.paste((40, 200, 40), (40, 0, 80, 40))
+        image.save(pull / f"P{p}.jpg")
+        rows += [
+            (f"P{p}_0", f"P{p}.jpg", "[2, 2, 38, 38]", "", f"P{p}"),
+            (f"P{p}_1", f"P{p}.jpg", "[42, 2, 78, 38]", "", f"P{p}"),
+        ]
+    pd.DataFrame(rows, columns=["item_id", "image_path", "bbox", "given", "group"]).to_csv(
+        pull / "task.csv", index=False
+    )
+    for labeler in ("alice", "bob"):
+        store = LabelStore(pull / "labels_task.csv", labeler)
+        for item, *_ in rows:
+            left = item.endswith("_0")
+            store.record(
+                parse_label(
+                    {
+                        "item_id": item,
+                        "maturity": "ripe" if left else "unripe",
+                        "defects": ["rot"] if left else [],
+                    }
+                )
+            )
+
+    def mean_colour(crops):
+        return np.stack([np.asarray(c, dtype=float).mean(axis=(0, 1)) for c in crops])
+
+    classes = ("unripe", "ripe", "overripe")
+    report = evaluate_pull(
+        pull, _FakeProbe(), mean_colour, classes, n_resamples=100, defect_head=_FakeDefectHead()
+    )
+
+    quality = report["quality"]
+    assert quality["n"] == 12
+    assert quality["reject_recall"]["point"] == pytest.approx(1.0)
+    assert quality["reject_precision"]["point"] == pytest.approx(1.0)
+    assert quality["defects"]["rot"]["precision"]["point"] == pytest.approx(1.0)
+    assert report["metrics"]["precision"]["ripe"]["point"] is not None
+    check_c = {c["id"]: c for c in report["checks"]}["C"]
+    assert check_c["passed"] is True and check_c["value"] == quality["reject_recall"]
+
+    without = evaluate_pull(pull, _FakeProbe(), mean_colour, classes, n_resamples=100)
+    assert "quality" not in without
+    assert {c["id"]: c for c in without["checks"]}["C"]["passed"] is None
+
+
 def test_unresolved_items_need_adjudication(labels) -> None:
     from strawberry_picker.evaluation.phone_set import unresolved_items
 
