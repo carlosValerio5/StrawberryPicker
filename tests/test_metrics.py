@@ -7,6 +7,7 @@ from strawberry_picker.evaluation.metrics import (
     bootstrap_ci,
     expected_calibration_error,
     krippendorff_alpha,
+    per_class_precision,
     per_class_recall,
     quadratic_weighted_kappa,
 )
@@ -56,6 +57,16 @@ def test_quadratic_weighted_kappa_matches_sklearn() -> None:
 def test_per_class_recall_reports_missing_classes_as_nan() -> None:
     recall = per_class_recall(np.array([0, 0, 1, 1]), np.array([0, 1, 1, 1]), n_classes=3)
     assert recall[0] == 0.5 and recall[1] == 1.0 and np.isnan(recall[2])
+
+
+def test_per_class_precision_matches_sklearn_and_reports_unused_classes_as_nan() -> None:
+    sklearn_metrics = pytest.importorskip("sklearn.metrics")
+    truth = np.array([0, 0, 1, 1, 2, 2, 2, 1, 0, 2])
+    predicted = np.array([0, 1, 1, 2, 2, 2, 1, 1, 0, 0])
+    expected = sklearn_metrics.precision_score(truth, predicted, average=None, labels=[0, 1, 2])
+    assert per_class_precision(truth, predicted, n_classes=3) == pytest.approx(expected)
+    never_called = per_class_precision(np.array([0, 1, 2]), np.array([0, 1, 1]), n_classes=3)
+    assert never_called[0] == 1.0 and never_called[1] == 0.5 and np.isnan(never_called[2])
 
 
 def test_expected_calibration_error() -> None:
