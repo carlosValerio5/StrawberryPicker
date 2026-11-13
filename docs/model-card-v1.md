@@ -148,6 +148,12 @@ phone set. That set does not exist yet (see below).
 
 - No locked phone test set exists (ADR [0007](decisions/0007-lean-phone-test-set.md) §6),
   so there is no ADR 0005 pass/fail for v1.
+- **When the phone set is captured**, `scripts/evaluate_phone_set.py` reports every number on this
+  page for it in one run:
+  - per-class precision and recall, macro-F1, the confusion matrix and ECE
+  - per-defect precision and recall, plus reject recall and precision
+  - the ADR 0005 checks, including check C (reject recall ≥ 0.80), which now uses the v1
+    defect head
 - Every number on this page is a development number.
 - Thresholds were not changed after seeing these results.
 - **Where the precision and macro-F1 numbers come from.** They were computed by re-running both
