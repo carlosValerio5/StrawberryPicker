@@ -11,7 +11,7 @@
 | `per_class_precision` matches scikit-learn, with `NaN` for a class never predicted | `d06e17a` | `6a34e1f` |
 | The maturity report carries per-class precision with group-bootstrap intervals | `d06e17a` | `6a34e1f` |
 | The defect report carries reject precision with group-bootstrap intervals | `d06e17a` | `6a34e1f` |
-| The phone-set evaluation scores a defect head: per-defect precision/recall, reject recall/precision, and check C gets a verdict; without a head, check C stays n/a | see `git log` | see `git log` |
+| The phone-set evaluation scores a defect head: per-defect precision/recall, reject recall/precision, and check C gets a verdict; without a head, check C stays n/a | `1b752f5` | `f6bf127` |
 
 ## Evidence that isn't a unit test
 
