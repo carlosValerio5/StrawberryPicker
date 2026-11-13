@@ -14,6 +14,7 @@ import numpy as np
 from strawberry_picker.evaluation.metrics import (
     bootstrap_ci,
     expected_calibration_error,
+    per_class_precision,
     per_class_recall,
     quadratic_weighted_kappa,
 )
@@ -43,7 +44,7 @@ def evaluate_maturity(
     n_resamples: int = 2000,
     seed: int = 0,
 ) -> dict[str, Any]:
-    """QWK, per-class recall (with intervals), macro-F1, ECE and the confusion matrix."""
+    """QWK, per-class recall and precision (with intervals), macro-F1, ECE, confusion matrix."""
     n_classes = len(classes)
     predicted = probs.argmax(axis=1)
 
@@ -56,6 +57,14 @@ def evaluate_maturity(
 
         return recall
 
+    def precision_of(k: int):
+        def precision(index: np.ndarray) -> float:
+            return float(
+                per_class_precision(truth[index], predicted[index], n_classes=n_classes)[k]
+            )
+
+        return precision
+
     confusion = np.zeros((n_classes, n_classes), dtype=int)
     np.add.at(confusion, (truth, predicted), 1)
     ci = {"n_resamples": n_resamples, "seed": seed}
@@ -66,6 +75,10 @@ def evaluate_maturity(
         "qwk": _interval(bootstrap_ci(qwk, groups, **ci)),
         "recall": {
             name: _interval(bootstrap_ci(recall_of(k), groups, **ci))
+            for k, name in enumerate(classes)
+        },
+        "precision": {
+            name: _interval(bootstrap_ci(precision_of(k), groups, **ci))
             for k, name in enumerate(classes)
         },
         "macro_f1": _macro_f1(truth, predicted, n_classes),

@@ -173,7 +173,7 @@ def evaluate_quality(
     n_resamples: int = 2000,
     seed: int = 0,
 ) -> dict[str, Any]:
-    """ADR 0005 §C numbers: per-defect precision/recall and reject-grade recall, with intervals.
+    """ADR 0005 §C numbers: per-defect precision/recall, reject recall/precision, with intervals.
 
     Rows whose truth is ``None`` (not assessed) are left out. Intervals resample ``groups``
     (photos, or images for public sources). Reports never carry a verdict: only the locked
@@ -218,6 +218,11 @@ def evaluate_quality(
         "reject_recall": _interval(
             bootstrap_ci(
                 lambda i: _ratio(is_reject[i] & called_reject[i], is_reject[i]), groups, **ci
+            )
+        ),
+        "reject_precision": _interval(
+            bootstrap_ci(
+                lambda i: _ratio(is_reject[i] & called_reject[i], called_reject[i]), groups, **ci
             )
         ),
         "reject_recall_bar": REJECT_RECALL_BAR,
