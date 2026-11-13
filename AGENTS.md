@@ -22,6 +22,7 @@ configs/                   YAML configs: data + one file per training task
   sources.yaml             bronze source registry + label mappings (validated on load)
 data/                      MEDALLION DATA — git-ignored except READMEs
   bronze/ silver/ gold/    raw → cleaned → model-ready (read each README)
+PRODUCT.md / DESIGN.md      product truth + visual system for the demo page (impeccable)
 docs/
   target-domain.md         where the model runs (hand-held phone photos); judge datasets against it
   architecture.md          pipeline + candidate open-source models
@@ -54,6 +55,8 @@ src/strawberry_picker/
                            defect_probe.py (per-defect probes, val thresholds, rule grade)
   evaluation/              metrics.py (ADR 0005 numbers), maturity.py, phone_set.py (locked verdict)
   inference/               pipeline.py: photo → detect (OWLv2) → crop → per-berry maturity
+  demo/                    inspection demo (ADR 0012): server.py (stdlib, warm-up + job queue),
+                           summary.py (tray verdict + reasons), page/ (vanilla HTML/CSS/JS, OFL fonts)
 tests/                     pytest; must not need real data or GPUs
 ```
 

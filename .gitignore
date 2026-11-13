@@ -73,3 +73,12 @@ graphify-out/
 /*.zip
 /*.tar
 /*.tar.gz
+
+# impeccable design workflow: screenshots, comps and build state stay local
+/.impeccable/review/
+/.impeccable/mocks/
+/.impeccable/build/
+/.impeccable/live/
+/.impeccable/config.local.json
+/.impeccable/questions/
+/.impeccable/hook.cache.json

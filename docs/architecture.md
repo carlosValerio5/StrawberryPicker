@@ -45,6 +45,8 @@ Check licenses before adopting. Code and weights can have different licenses.
 | Dependency | Role | License | Notes |
 |------------|------|---------|-------|
 | `pi-heif` 1.4.0 | Decodes iPhone HEIC/HEIF photos (registers with Pillow) | BSD-3-Clause (wrapper code) | Decode-only. Its binary wheels bundle **libheif** and **libde265**, both **LGPL-3.0** (dynamic libraries, per the wheel's `LICENSES_bundled.txt`). Chosen over `pillow-heif`, whose wheels bundle x265 (GPL). Added with `owner_phone_2026` |
+| Archivo (variable, `archivo-latin-wdth-normal.woff2`, Fontsource 5.1.1) | Headline and UI face of the inspection demo page | SIL OFL 1.1 | Self-hosted in `src/strawberry_picker/demo/page/fonts/` with `OFL-Archivo.txt`; ADR [0012](decisions/0012-inspection-demo-ui.md) |
+| Martian Mono (variable, `martian-mono-latin-wdth-normal.woff2`, Fontsource 5.1.1) | Data face (lot table, tallies) of the demo page | SIL OFL 1.1 | Self-hosted beside Archivo with `OFL-MartianMono.txt` |
 
 ## Suggested milestones
 

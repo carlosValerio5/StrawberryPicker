@@ -44,3 +44,8 @@ def reports_dir() -> Path:
 
 def configs_dir() -> Path:
     return PROJECT_ROOT / "configs"
+
+
+def demo_dir() -> Path:
+    """Precomputed sample results for the inspection demo (``reports/demo``)."""
+    return reports_dir() / "demo"

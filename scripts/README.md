@@ -21,4 +21,5 @@ Thin command-line entry points. Each script parses arguments, loads a config wit
 | `train_maturity.py` | Train the DINOv2 linear-probe baseline → `models/maturity_cls/<run_id>/` |
 | `train_quality.py` | Train the per-defect probe baseline (ADR 0010) → `models/quality_cls/<run_id>/` |
 | `predict.py <image or folder> [--run] [--quality-run] [--no-quality] [--annotate]` | Per-berry maturity, defects and grade for new photos (detect → crop → classify, ADRs 0009–0011) as JSON. Refuses the locked phone set |
+| `demo.py [--precompute <image or folder>...]` | Business demo on 127.0.0.1:8766: drop a photo, get each berry's ripeness and quality and a batch verdict. The model warms up in the background; `--precompute` writes instant sample results to `reports/demo/` (refuses the locked phone set) |
 | `evaluate_phone_set.py` | The ADR 0005 verdict on the locked phone set, or the adjudication task if labelers disagree |

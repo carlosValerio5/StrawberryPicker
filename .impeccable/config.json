@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "repeating-gradient",
+        "value": "*",
+        "files": [
+          "src/strawberry_picker/demo/page/index.html"
+        ],
+        "createdAt": "2026-11-12T23:52:24.691Z",
+        "reason": "direction contract (Market News Wire, chosen by owner): green-bar fanfold bands are the world's paper, not decoration"
+      },
+      {
+        "rule": "all-caps-body",
+        "value": "*",
+        "files": [
+          "src/strawberry_picker/demo/page/index.html"
+        ],
+        "createdAt": "2026-11-12T23:52:24.710Z",
+        "reason": "direction contract: wire-report datelines are short uppercase metadata lines (<=60 chars), prose stays sentence case"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "src/strawberry_picker/demo/page/index.html"
+        ],
+        "createdAt": "2026-11-12T23:52:24.729Z",
+        "reason": "false positive: .intake-frame has 48px vertical padding; icon sits inside it"
+      }
+    ]
+  }
+}

@@ -1,0 +1,605 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-13T00:23:27+00:00",
+  "title": "Design System: StrawberryPicker",
+  "extensions": {
+    "colorMeta": {
+      "desk": {
+        "role": "neutral",
+        "displayName": "Desk",
+        "canonical": "#252a26",
+        "tonalRamp": [
+          "#080c09",
+          "#232824",
+          "#414742",
+          "#626863",
+          "#858b86",
+          "#a9b0ab",
+          "#ccd3ce",
+          "#eaf0eb"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Fanfold Paper",
+        "canonical": "#f7f9f5",
+        "tonalRamp": [
+          "#0a0c09",
+          "#262724",
+          "#444642",
+          "#656763",
+          "#888a86",
+          "#adafab",
+          "#d0d2ce",
+          "#edefeb"
+        ]
+      },
+      "paper-hi": {
+        "role": "neutral",
+        "displayName": "Bright Leaf",
+        "canonical": "#fcfdfa",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#262725",
+          "#454543",
+          "#666664",
+          "#898987",
+          "#adaeab",
+          "#d0d1ce",
+          "#eeefec"
+        ]
+      },
+      "band": {
+        "role": "neutral",
+        "displayName": "Green Bar",
+        "canonical": "#ebf3e8",
+        "tonalRamp": [
+          "#080d06",
+          "#232820",
+          "#41473e",
+          "#62685f",
+          "#848c82",
+          "#a9b1a6",
+          "#ccd4c9",
+          "#e9f1e6"
+        ]
+      },
+      "band-row": {
+        "role": "neutral",
+        "displayName": "Row Bar",
+        "canonical": "#dcebd8",
+        "tonalRamp": [
+          "#050e03",
+          "#1f2a1c",
+          "#3d493a",
+          "#5e6a5a",
+          "#808e7d",
+          "#a5b3a1",
+          "#c7d6c3",
+          "#e5f4e1"
+        ]
+      },
+      "band-hot": {
+        "role": "neutral",
+        "displayName": "Hot Bar",
+        "canonical": "#c8ddc2",
+        "tonalRamp": [
+          "#030f01",
+          "#1b2b17",
+          "#394b34",
+          "#5a6c55",
+          "#7c9077",
+          "#a1b59b",
+          "#c3d8bd",
+          "#e1f6da"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "canonical": "#a7bca3",
+        "tonalRamp": [
+          "#020f01",
+          "#1b2c18",
+          "#394b35",
+          "#596c56",
+          "#7c9078",
+          "#a0b59c",
+          "#c3d8bf",
+          "#e0f6dc"
+        ]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Strong Rule",
+        "canonical": "#7f977b",
+        "tonalRamp": [
+          "#011000",
+          "#182c15",
+          "#364c33",
+          "#576d53",
+          "#799175",
+          "#9db699",
+          "#c0dabc",
+          "#ddf7d9"
+        ]
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Market Ink",
+        "canonical": "#132017",
+        "tonalRamp": [
+          "#040e07",
+          "#1d2a21",
+          "#3b493f",
+          "#5b6b5f",
+          "#7e8e82",
+          "#a2b3a7",
+          "#c5d6c9",
+          "#e2f4e7"
+        ]
+      },
+      "ink-lift": {
+        "role": "primary",
+        "displayName": "Lifted Ink",
+        "canonical": "#26402e",
+        "tonalRamp": [
+          "#001003",
+          "#132d1c",
+          "#324c3a",
+          "#526e5a",
+          "#75917d",
+          "#99b7a1",
+          "#bbdac3",
+          "#d9f8e1"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "#384a3d",
+        "tonalRamp": [
+          "#020f05",
+          "#1a2b1f",
+          "#384a3d",
+          "#596c5e",
+          "#7b8f80",
+          "#9fb4a5",
+          "#c2d7c8",
+          "#dff5e5"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink 3",
+        "canonical": "#536456",
+        "tonalRamp": [
+          "#030f05",
+          "#1c2b1f",
+          "#3a4a3d",
+          "#5a6b5d",
+          "#7d8f80",
+          "#a1b4a4",
+          "#c4d7c7",
+          "#e1f5e4"
+        ]
+      },
+      "ripe": {
+        "role": "secondary",
+        "displayName": "Strawberry Red",
+        "canonical": "#b3102b",
+        "tonalRamp": [
+          "#220001",
+          "#50000b",
+          "#8a0016",
+          "#ba1c31",
+          "#e54b53",
+          "#ff8282",
+          "#ffbab7",
+          "#ffe4e2"
+        ]
+      },
+      "unripe": {
+        "role": "secondary",
+        "displayName": "Chartreuse Leaf",
+        "canonical": "#56730a",
+        "tonalRamp": [
+          "#021000",
+          "#182f00",
+          "#354f00",
+          "#557207",
+          "#779639",
+          "#9bbc5f",
+          "#bde082",
+          "#dafe9f"
+        ]
+      },
+      "overripe": {
+        "role": "secondary",
+        "displayName": "Aubergine",
+        "canonical": "#5a1939",
+        "tonalRamp": [
+          "#1f000d",
+          "#48062a",
+          "#6c2a49",
+          "#924c6a",
+          "#b96f8e",
+          "#e193b3",
+          "#ffb6d6",
+          "#ffe2f1"
+        ]
+      },
+      "stamp": {
+        "role": "tertiary",
+        "displayName": "Vermilion Stamp",
+        "canonical": "#c93717",
+        "tonalRamp": [
+          "#220000",
+          "#530000",
+          "#890000",
+          "#b92500",
+          "#e45133",
+          "#ff866c",
+          "#ffbcab",
+          "#ffe5dc"
+        ]
+      },
+      "stamp-deep": {
+        "role": "tertiary",
+        "displayName": "Deep Vermilion",
+        "canonical": "#8a2410",
+        "tonalRamp": [
+          "#220000",
+          "#500000",
+          "#7f1803",
+          "#a7402c",
+          "#d0654f",
+          "#fa8a73",
+          "#ffbbaa",
+          "#ffe5dc"
+        ]
+      },
+      "stamp-wash": {
+        "role": "tertiary",
+        "displayName": "Stamp Wash",
+        "canonical": "#fbe9e2",
+        "tonalRamp": [
+          "#130805",
+          "#30231e",
+          "#50413c",
+          "#72625c",
+          "#95857f",
+          "#bbaaa3",
+          "#decdc6",
+          "#fceae3"
+        ]
+      },
+      "photo-reject": {
+        "role": "tertiary",
+        "displayName": "Photo Reject",
+        "canonical": "#ff6a45",
+        "tonalRamp": [
+          "#220000",
+          "#530000",
+          "#890000",
+          "#b92500",
+          "#e4512c",
+          "#ff8668",
+          "#ffbca9",
+          "#ffe5db"
+        ]
+      },
+      "premium": {
+        "role": "primary",
+        "displayName": "Pack-out Green",
+        "canonical": "#1d5631",
+        "tonalRamp": [
+          "#001200",
+          "#00310f",
+          "#18522d",
+          "#3c744d",
+          "#60986f",
+          "#84be93",
+          "#a7e2b6",
+          "#c4ffd2"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Verdict Display",
+        "purpose": "Verdict, empty-form and printing headlines; 44px/48px below 960px."
+      },
+      "headline": {
+        "displayName": "Slip Ripeness",
+        "purpose": "Ripeness name on the berry slip, in its ripeness ink; drop veil at 44px/48px."
+      },
+      "title": {
+        "displayName": "Intake Title",
+        "purpose": "Empty-plate drop instruction."
+      },
+      "stamp": {
+        "displayName": "Rubber Stamp",
+        "purpose": "Grade stamp beside the verdict; 16px/24px below 960px."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "Masthead name only; the one expanded width."
+      },
+      "body": {
+        "displayName": "Condition",
+        "purpose": "Condition line and explanatory prose, max 62ch."
+      },
+      "body-sm": {
+        "displayName": "Body Small",
+        "purpose": "Drop strip, sample titles, legend definitions, errata."
+      },
+      "button": {
+        "displayName": "Press",
+        "purpose": "Button labels; 14px in the file line."
+      },
+      "data": {
+        "displayName": "Lot Line",
+        "purpose": "Lot table cells with tabular figures; head at 11.5px/600 in ink-3."
+      },
+      "label": {
+        "displayName": "Terminal Label",
+        "purpose": "Dateline, wire, file line, rubrics, tally, counts, lot tags."
+      },
+      "label-sm": {
+        "displayName": "Terminal Caption",
+        "purpose": "Captions, slip codes and fact labels, mix labels, notes."
+      }
+    },
+    "shadows": [
+      {
+        "name": "print",
+        "value": "0 1px 2px rgb(19 32 23 / 0.14), 0 14px 32px -14px rgb(19 32 23 / 0.5)",
+        "purpose": "The photo print mounted on the plate."
+      },
+      {
+        "name": "sample-print",
+        "value": "0 1px 2px rgb(19 32 23 / 0.12), 0 10px 22px -14px rgb(19 32 23 / 0.45)",
+        "purpose": "Sample prints on the contact sheet at rest."
+      },
+      {
+        "name": "sample-print-lift",
+        "value": "0 2px 4px rgb(19 32 23 / 0.14), 0 18px 30px -14px rgb(19 32 23 / 0.5)",
+        "purpose": "Sample print on hover or focus, with a 3px rise."
+      },
+      {
+        "name": "slip",
+        "value": "0 2px 4px rgb(19 32 23 / 0.12), 0 22px 44px -16px rgb(19 32 23 / 0.55)",
+        "purpose": "The torn berry slip, the highest leaf."
+      },
+      {
+        "name": "slip-inflow",
+        "value": "0 1px 2px rgb(19 32 23 / 0.12)",
+        "purpose": "Berry slip opened in flow below 960px."
+      },
+      {
+        "name": "tag-edge",
+        "value": "0 1px 0 rgb(0 0 0 / 0.25)",
+        "purpose": "Lot tags on the photo."
+      },
+      {
+        "name": "masthead-double-rule",
+        "value": "0 3px 0 -2px #f7f9f5, 0 4px 0 -2px #132017",
+        "purpose": "Second underline under the masthead."
+      },
+      {
+        "name": "stamp-double-rule",
+        "value": "inset 0 0 0 2px #f7f9f5, inset 0 0 0 3.5px currentColor",
+        "purpose": "Inner rule of the rubber stamp."
+      },
+      {
+        "name": "focus-ring",
+        "value": "outline: 3px solid #1d5631; outline-offset: 3px",
+        "purpose": "Every keyboard focus."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The only easing curve."
+      },
+      {
+        "name": "paper-feed",
+        "value": "340ms ease-out, stagger 55ms per line; clip-path inset(0 0 100% 0) to inset(0) with translateY(-6px) to 0",
+        "purpose": "Report lines printing in when a result files."
+      },
+      {
+        "name": "mark-in",
+        "value": "300ms ease-out, stagger 55ms + 120ms",
+        "purpose": "Photo outlines and tags fading in behind the feed."
+      },
+      {
+        "name": "stamp-impact",
+        "value": "280ms ease-out, delay 140ms; scale 1.4 rotate -3deg, to 0.96 rotate -8deg, to 1 rotate -7deg",
+        "purpose": "The stamp landing once per report."
+      },
+      {
+        "name": "slip-in",
+        "value": "220ms ease-out; translateY(-8px) and fade",
+        "purpose": "Berry slip laid down on desktop."
+      },
+      {
+        "name": "state",
+        "value": "140-180ms ease-out",
+        "purpose": "Hover fills, border inking, outline focus dimming."
+      },
+      {
+        "name": "printhead",
+        "value": "2.4s steps(6, jump-none) infinite",
+        "purpose": "Print-head band sweeping ghost lines while reading."
+      },
+      {
+        "name": "blink",
+        "value": "1s steps(2, jump-none) infinite (1.2s on the warming dot)",
+        "purpose": "Block caret and warming wire dot."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation: none; transition: none (all elements); print replay skipped in JS",
+        "purpose": "prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow",
+        "value": "960px",
+        "purpose": "At and below: report first, plate second, page scrolls, slip in flow under its lot row."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Press Button",
+      "kind": "button",
+      "refersTo": "press",
+      "description": "Primary printed action, one band (48px) tall; filled ink.",
+      "html": "<button class=\"ds-press\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M14.5 6l-6 6 6 6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><span>New report</span><kbd class=\"ds-kbd\">N</kbd></button>",
+      "css": ".ds-press{display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 22px 0 18px;border:1.5px solid #132017;border-radius:3px;background:#132017;color:#fcfdfa;font-family:Archivo, \"Helvetica Neue\", Arial, sans-serif;font-size:15px;font-weight:750;font-stretch:92%;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:background-color 160ms cubic-bezier(.16,1,.3,1),transform 120ms cubic-bezier(.16,1,.3,1)}.ds-press svg{width:20px;height:20px}.ds-press:hover{background:#26402e}.ds-press:active{transform:translateY(1px)}.ds-press:focus-visible{outline:3px solid #1d5631;outline-offset:3px}.ds-kbd{margin-left:4px;font-family:\"Martian Mono\", ui-monospace, Menlo, monospace;font-size:12px;line-height:16px;font-weight:500;font-stretch:87.5%;padding:0 5px;border:1px solid currentColor;border-radius:3px;opacity:.7}"
+    },
+    {
+      "name": "Quiet Press Button",
+      "kind": "button",
+      "refersTo": "press-quiet",
+      "description": "Secondary printed action; outlined, hot bar on hover.",
+      "html": "<button class=\"ds-press-quiet\" type=\"button\">New report</button>",
+      "css": ".ds-press-quiet{display:inline-flex;align-items:center;height:48px;padding:0 22px;border:1.5px solid #132017;border-radius:3px;background:transparent;color:#132017;font-family:Archivo, \"Helvetica Neue\", Arial, sans-serif;font-size:15px;font-weight:750;font-stretch:92%;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:background-color 160ms cubic-bezier(.16,1,.3,1)}.ds-press-quiet:hover{background:#c8ddc2}.ds-press-quiet:active{transform:translateY(1px)}.ds-press-quiet:focus-visible{outline:3px solid #1d5631;outline-offset:3px}"
+    },
+    {
+      "name": "File Line",
+      "kind": "input",
+      "refersTo": "fileline-action",
+      "description": "The printed form field naming the filed photo, with its New photo action.",
+      "html": "<div class=\"ds-fileline\"><span class=\"ds-fileline-label\">File</span><span class=\"ds-fileline-field\">IMG 1484</span><button class=\"ds-fileline-action\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>New photo</button></div>",
+      "css": ".ds-fileline{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:end;gap:12px;color:#132017;background:#f7f9f5;padding:12px}.ds-fileline-label{font-family:\"Martian Mono\", ui-monospace, Menlo, monospace;font-size:12.5px;font-weight:700;font-stretch:87.5%;letter-spacing:.06em;text-transform:uppercase;padding-bottom:6px}.ds-fileline-field{padding:0 4px 5px;border-bottom:1.5px solid #132017;font-family:\"Martian Mono\", ui-monospace, Menlo, monospace;font-size:14px;font-weight:600;font-stretch:87.5%;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ds-fileline-action{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px 0 11px;border:1.5px solid #132017;border-radius:3px;background:#fcfdfa;color:#132017;font-family:Archivo, \"Helvetica Neue\", Arial, sans-serif;font-size:14px;font-weight:750;font-stretch:92%;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:background-color 160ms cubic-bezier(.16,1,.3,1)}.ds-fileline-action svg{width:18px;height:18px}.ds-fileline-action:hover{background:#c8ddc2}.ds-fileline-action:focus-visible{outline:3px solid #1d5631;outline-offset:3px}"
+    },
+    {
+      "name": "Tray Picker",
+      "kind": "nav",
+      "refersTo": "tray",
+      "description": "Numbered sample-tray keys under the file line; current tray is solid ink.",
+      "html": "<nav class=\"ds-trays\" aria-label=\"Sample trays\"><span class=\"ds-trays-label\">Trays</span><button class=\"ds-tray\" type=\"button\">01</button><button class=\"ds-tray is-current\" type=\"button\" aria-current=\"true\">02</button><button class=\"ds-tray\" type=\"button\">03</button></nav>",
+      "css": ".ds-trays{display:flex;flex-wrap:wrap;align-items:center;gap:6px;background:#f7f9f5;padding:12px}.ds-trays-label{margin-right:6px;font-family:\"Martian Mono\", ui-monospace, Menlo, monospace;font-size:12px;font-stretch:87.5%;letter-spacing:.06em;text-transform:uppercase;color:#384a3d}.ds-tray{min-width:40px;height:30px;padding:0 8px;border:1px solid #7f977b;border-radius:3px;background:#fcfdfa;color:#132017;font-family:\"Martian Mono\", ui-monospace, Menlo, monospace;font-size:12.5px;font-weight:700;font-stretch:87.5%;cursor:pointer;transition:background-color 140ms cubic-bezier(.16,1,.3,1),border-color 140ms cubic-bezier(.16,1,.3,1)}.ds-tray:hover{border-color:#132017;background:#c8ddc2}.ds-tray.is-current{background:#132017;border-color:#132017;color:#fcfdfa}.ds-tray:focus-visible{outline:3px solid #1d5631;outline-offset:3px}"
+    },
+    {
+      "name": "Verdict and Rubber Stamp",
+      "kind": "custom",
+      "refersTo": "stamp-reject",
+      "description": "Condensed display verdict with the grade stamp floated beside it, askew and multiplied.",
+      "html": "<div class=\"ds-verdict\"><p class=\"ds-stamp\">Reject</p><h1 class=\"ds-headline\">Reject this tray.</h1></div>",
+      "css": ".ds-verdict{display:flow-root;background:#f7f9f5;color:#132017;padding:12px 24px}.ds-headline{margin:0;font-family:Archivo, \"Helvetica Neue\", Arial, sans-serif;font-size:62px;line-height:64px;font-weight:820;font-stretch:66%;letter-spacing:.002em;word-spacing:.06em;text-transform:uppercase;text-wrap:balance}.ds-stamp{float:right;margin:10px 8px 12px 18px;padding:3px 12px 1px;font-family:Archivo, \"Helvetica Neue\", Arial, sans-serif;font-size:27px;line-height:34px;font-weight:860;font-stretch:92%;letter-spacing:.1em;text-transform:uppercase;color:#c93717;border:3px solid currentColor;border-radius:6px;box-shadow:inset 0 0 0 2px #f7f9f5,inset 0 0 0 3.5px currentColor;transform:rotate(-7deg);mix-blend-mode:multiply;animation:ds-stamp 280ms cubic-bezier(.16,1,.3,1) 140ms both}@keyframes ds-stamp{0%{transform:rotate(-3deg) scale(1.4);opacity:0}60%{transform:rotate(-8deg) scale(.96);opacity:1}100%{transform:rotate(-7deg) scale(1);opacity:1}}@media (prefers-reduced-motion:reduce){.ds-stamp{animation:none}}"
+    },
+    {
+      "name": "Leader Tally and Mix Bar",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Printed tally rows with dotted leaders and line-form swatches, over a labelled ripeness mix bar.",
+      "html": "<div class=\"ds-tallywrap\"><dl class=\"ds-tally\"><div><dt>Berries found</dt><dd>12</dd></div><div><dt><span class=\"ds-swatch ds-ripe\"></span>Ripe</dt><dd>7</dd></div><div><dt><span class=\"ds-swatch ds-unripe\"></span>Unripe</dt><dd>3</dd></div><div><dt><span class=\"ds-swatch ds-overripe\"></span>Overripe</dt><dd>2</dd></div></dl><div class=\"ds-mixes\"><span class=\"ds-mixlabel\">Ripeness mix</span><div class=\"ds-mixbar\"><span class=\"ds-ripe\" style=\"width:58%\"></span><span class=\"ds-unripe\" style=\"width:25%\"></span><span class=\"ds-overripe\" style=\"width:17%\"></span></div><span class=\"ds-mixcount\">7 ripe</span></div></div>",
+      "css": ".ds-tallywrap{background:#f7f9f5;color:#132017;padding:12px 24px}.ds-tally{margin:0;display:grid;grid-template-columns:1fr;max-width:22rem}.ds-tally div{display:flex;align-items:baseline;gap:8px;height:24px;font-family:\"Martian Mono\", ui-monospace, Menlo, monospace;font-size:12.5px;font-stretch:87.5%;text-transform:uppercase;letter-spacing:.03em}.ds-tally dt{display:flex;align-items:center;gap:8px;flex:1;min-width:0;color:#384a3d}.ds-tally dt::after{content:\"\";flex:1;min-width:12px;height:2px;margin-top:8px;background-image:radial-gradient(circle,#536456 0 1px,transparent 1.3px);background-size:6px 2px;background-repeat:repeat-x}.ds-tally dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}.ds-swatch{flex:none;width:22px;height:0;border-top:3px solid currentColor}.ds-swatch.ds-ripe{color:#b3102b}.ds-swatch.ds-unripe{color:#56730a;border-top-style:dashed}.ds-swatch.ds-overripe{color:#5a1939;border-top-style:double;border-top-width:6px}.ds-mixes{display:grid;grid-template-columns:7.5rem minmax(0,1fr) auto;align-items:center;gap:6px 12px;margin-top:10px}.ds-mixlabel,.ds-mixcount{font-family:\"Martian Mono\", ui-monospace, Menlo, monospace;font-size:12px;font-stretch:87.5%;letter-spacing:.04em;text-transform:uppercase;color:#384a3d}.ds-mixcount{font-weight:700;color:#132017}.ds-mixbar{display:flex;height:8px;border:1px solid #132017;background:#fcfdfa;overflow:hidden}.ds-mixbar span{display:block;height:100%}.ds-mixbar span+span{border-left:1px solid #fcfdfa}.ds-mixbar .ds-ripe{background:#b3102b}.ds-mixbar .ds-unripe{background:repeating-linear-gradient(90deg,#56730a 0 9px,#fcfdfa 9px 13px)}.ds-mixbar .ds-overripe{background:linear-gradient(#5a1939 0 35%,#fcfdfa 35% 65%,#5a1939 65%)}"
+    },
+    {
+      "name": "Lot Table",
+      "kind": "custom",
+      "refersTo": "lot-row",
+      "description": "Green-bar lot lines, one band per berry; ripeness in its ink and form, rejects as a mini-stamp.",
+      "html": "<table class=\"ds-lots\"><thead><tr><th>Lot</th><th>Ripeness</th><th>Defects</th><th class=\"ds-num\">Grade</th></tr></thead><tbody><tr><td><span class=\"ds-swatch ds-ripe\"></span><b>B-01</b></td><td class=\"ds-ripe\">Ripe</td><td class=\"ds-reject\">Rot</td><td class=\"ds-num\"><span class=\"ds-mini-stamp\">Reject</span></td></tr><tr class=\"is-on\"><td><span class=\"ds-swatch ds-unripe\"></span><b>B-02</b></td><td class=\"ds-unripe\">Unripe</td><td class=\"ds-def\">None seen</td><td class=\"ds-num ds-premium\">Premium</td></tr><tr><td><span class=\"ds-swatch ds-overripe\"></span><b>B-03</b></td><td class=\"ds-overripe\">Overripe</td><td class=\"ds-def\">None seen</td><td class=\"ds-num\">Standard</td></tr></tbody></table>",
+      "css": ".ds-lots{width:100%;border-collapse:collapse;font-family:\"Martian Mono\", ui-monospace, Menlo, monospace;font-size:13px;font-stretch:87.5%;text-transform:uppercase;letter-spacing:.02em;color:#132017;background:#f7f9f5}.ds-lots th{height:24px;padding:0 10px;font-size:11.5px;font-weight:600;letter-spacing:.06em;text-align:left;color:#536456;border-bottom:1px solid #132017}.ds-lots .ds-num{text-align:right}.ds-lots tbody tr{height:48px;background:#f7f9f5;cursor:pointer;transition:background-color 140ms cubic-bezier(.16,1,.3,1)}.ds-lots tbody tr:nth-child(odd){background:#dcebd8}.ds-lots tbody tr:hover,.ds-lots tbody tr.is-on{background:#c8ddc2}.ds-lots tbody tr.is-on td{box-shadow:inset 0 1px 0 #132017,inset 0 -1px 0 #132017}.ds-lots td{padding:0 10px;white-space:nowrap}.ds-lots td b{margin-left:10px}.ds-swatch{display:inline-block;width:22px;height:0;border-top:3px solid currentColor;vertical-align:middle}.ds-ripe{color:#b3102b;font-weight:600}.ds-unripe{color:#56730a;font-weight:600}.ds-overripe{color:#5a1939;font-weight:600}.ds-swatch.ds-unripe{border-top-style:dashed}.ds-swatch.ds-overripe{border-top-style:double;border-top-width:6px}.ds-def{color:#384a3d}.ds-reject{color:#c93717;font-weight:700}.ds-premium{color:#1d5631;font-weight:600}.ds-mini-stamp{display:inline-block;padding:0 6px;border:2px solid #c93717;border-radius:3px;color:#c93717;font-weight:800;letter-spacing:.06em;transform:rotate(-4deg)}"
+    },
+    {
+      "name": "Berry Slip",
+      "kind": "card",
+      "refersTo": "berry-slip",
+      "description": "Torn leaf of bright stock laid over the photo: crop, lot code, ripeness, facts, confidence on demand.",
+      "html": "<aside class=\"ds-slip\"><div class=\"ds-slip-crop\" role=\"img\" aria-label=\"Close-up of B-01\"></div><div class=\"ds-slip-body\"><p class=\"ds-slip-code\">Lot B-01</p><p class=\"ds-slip-ripeness\">Ripe</p><dl class=\"ds-slip-facts\"><div><dt>Defects</dt><dd class=\"is-reject\">Rot</dd></div><div><dt>Grade</dt><dd class=\"is-reject\">Reject</dd></div></dl><details class=\"ds-slip-conf\"><summary>Model confidence</summary></details></div></aside>",
+      "css": ".ds-slip{position:relative;width:16rem;margin:16px;background:#fcfdfa;color:#132017;border:1px solid #7f977b;box-shadow:0 2px 4px rgb(19 32 23 / .12),0 22px 44px -16px rgb(19 32 23 / .55);transform:rotate(-0.6deg);transform-origin:50% 0;font-family:Archivo, \"Helvetica Neue\", Arial, sans-serif}.ds-slip::before{content:\"\";position:absolute;left:0;right:0;top:-1px;height:7px;background-image:radial-gradient(circle at 50% 0,#252a26 0 2.5px,transparent 3px);background-size:11px 7px;background-repeat:repeat-x;opacity:.55}.ds-slip-crop{height:10.5rem;margin:10px 10px 0;background:#252a26;border:1px solid #132017}.ds-slip-body{padding:10px 14px 12px}.ds-slip-code{margin:0;font-family:\"Martian Mono\", ui-monospace, Menlo, monospace;font-size:12px;font-stretch:87.5%;letter-spacing:.04em;text-transform:uppercase;color:#384a3d}.ds-slip-ripeness{margin:0;font-size:34px;line-height:40px;font-weight:800;font-stretch:70%;text-transform:uppercase;color:#b3102b}.ds-slip-facts{margin:4px 0 0;display:grid}.ds-slip-facts div{display:grid;grid-template-columns:5.5rem 1fr;align-items:baseline;border-top:1px solid #a7bca3;padding:4px 0}.ds-slip-facts dt{font-family:\"Martian Mono\", ui-monospace, Menlo, monospace;font-size:12px;font-stretch:87.5%;text-transform:uppercase;letter-spacing:.05em;color:#536456}.ds-slip-facts dd{margin:0;font-weight:650}.ds-slip-facts dd.is-reject{color:#c93717}.ds-slip-conf{border-top:1px solid #a7bca3;padding-top:4px}.ds-slip-conf summary{cursor:pointer;font-family:\"Martian Mono\", ui-monospace, Menlo, monospace;font-size:12px;font-stretch:87.5%;text-transform:uppercase;letter-spacing:.05em;color:#384a3d}.ds-slip-conf summary:focus-visible{outline:3px solid #1d5631;outline-offset:3px}"
+    },
+    {
+      "name": "Errata Slip",
+      "kind": "custom",
+      "refersTo": "errata",
+      "description": "Errors print as a slightly askew vermilion-bordered slip.",
+      "html": "<p class=\"ds-errata\" role=\"alert\"><b>Errata</b>The model could not read this photo. Try another, or open a sample tray.</p>",
+      "css": ".ds-errata{margin:16px;padding:10px 14px;max-width:60ch;border:1.5px solid #c93717;background:#fbe9e2;color:#8a2410;font-family:Archivo, \"Helvetica Neue\", Arial, sans-serif;font-size:15px;line-height:22px;font-weight:560;transform:rotate(-0.4deg)}.ds-errata b{font-family:\"Martian Mono\", ui-monospace, Menlo, monospace;font-size:12px;font-stretch:87.5%;letter-spacing:.06em;text-transform:uppercase;margin-right:6px}"
+    },
+    {
+      "name": "Fanfold Sheet with Tractor Feed",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "The ground: green-bar bands on a 24px line between punched tractor strips and dashed tear lines.",
+      "html": "<div class=\"ds-sheet\"><div class=\"ds-feed ds-feed-l\"></div><div class=\"ds-page\"><p class=\"ds-dateline\">Report 001 · 12 Nov 2026 · 18:18</p></div><div class=\"ds-feed ds-feed-r\"></div></div>",
+      "css": ".ds-sheet{display:grid;grid-template-columns:40px 1fr 40px;height:240px;background:#f7f9f5;background-image:repeating-linear-gradient(to bottom,#ebf3e8 0 48px,#f7f9f5 48px 96px)}.ds-feed{background-color:#f7f9f5;background-image:radial-gradient(circle at 50% 50%,#252a26 0 6px,transparent 6.6px);background-size:100% 24px;background-repeat:repeat-y}.ds-feed-l{border-right:1px dashed #7f977b}.ds-feed-r{border-left:1px dashed #7f977b}.ds-page{padding:24px 24px 0 36px}.ds-dateline{margin:0;font-family:\"Martian Mono\", ui-monospace, Menlo, monospace;font-size:12.5px;line-height:24px;font-stretch:87.5%;text-transform:uppercase;letter-spacing:.04em;color:#384a3d}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Market News Wire",
+    "overview": "**Creative North Star: \"The Market News Wire\"**\n\nEvery result is filed as a printed commodity report on green-bar continuous fanfold, the way a market news terminal reports a lot: masthead and dateline, a monumental verdict headline, a condition line, a printed tally, then one lot line per berry. The sheet is cool paper white banded in pale green two text lines deep, with a punched tractor-feed strip down each edge and a dashed, tick-punched perforation where the photo plate folds against the report. The page sits on a dark desk that shows through the punched holes.\n\nInk is dense green-black and contrast is high, because the room is a half-lit meeting room with a projector washing out blacks. Headlines are a narrow wire-service grotesk set in heavy uppercase; everything tabular, coded or labelled is a narrowed mono with tabular figures. Ripeness is carried twice, by ink and by line form, so it survives a washed-out projector and colour-blind viewers. A reject is a vermilion rubber stamp, askew and grained. Rank comes only from layering: the photo is a print laid on the sheet, and a berry's detail is a torn slip laid over the photo.\n\nNothing moves except paper and ink: the report feeds in line by line when a result arrives, and the stamp lands once. Reduced motion removes both.",
+    "keyCharacteristics": [
+      "Green-bar fanfold ground: 48px bands alternating with paper, on a 24px text line.",
+      "Tractor-feed strips with desk-coloured punched holes on the 24px pitch.",
+      "Condensed heavy uppercase Archivo for verdicts; narrowed Martian Mono for every code, label and figure.",
+      "Three ripeness inks, each paired with a line form: solid, dashed, double.",
+      "Grades as ink: vermilion stamp for reject, deep green for premium, ink-2 for standard.",
+      "Depth by layering paper on paper; no cards, no tiles."
+    ],
+    "rules": [
+      {
+        "name": "The Two Carriers Rule",
+        "body": "Ripeness is never colour alone. Every place a ripeness ink appears as a mark (photo outline, legend swatch, lot-row swatch, mix bar segment) it carries its line form too: ripe solid, unripe dashed, overripe double.",
+        "section": "colors"
+      },
+      {
+        "name": "The Stamp Is Only Reject Rule",
+        "body": "Vermilion means reject and nothing else. It is not an accent, a link colour or a highlight.",
+        "section": "colors"
+      },
+      {
+        "name": "The Bands Are the Grid Rule",
+        "body": "The green bands are the page's measuring grid, 48px deep on a 24px line. Do not tint, recolour or shift them per section.",
+        "section": "colors"
+      },
+      {
+        "name": "The Terminal Prints It Rule",
+        "body": "Codes, counts, percentages, captions and labels are Martian Mono, uppercase, at width 87.5%, with tabular figures where numbers align. Prose and verdicts are never mono.",
+        "section": "typography"
+      },
+      {
+        "name": "The Width Is the Voice Rule",
+        "body": "Hierarchy is made with font-stretch and weight together, not size alone: verdict condensed and heavy, stamp near-normal and spaced, wordmark expanded. Do not set display text at normal width.",
+        "section": "typography"
+      },
+      {
+        "name": "The Whole Lines Rule",
+        "body": "Vertical space is spent in multiples of the 24px line; anything that can be one band tall is exactly 48px.",
+        "section": "layout"
+      },
+      {
+        "name": "The Layering Is Rank Rule",
+        "body": "The only way to raise something is to lay a leaf of brighter stock on top of it. Panels, cards and tinted containers are not used to rank content.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** put every block on the 24px line and make row-level elements exactly one 48px band tall.",
+      "**Do** pair every ripeness ink with its line form: ripe solid, unripe dashed, overripe double.",
+      "**Do** set codes, counts, labels and captions in Martian Mono, uppercase, width 87.5%, tabular figures for aligned numbers.",
+      "**Do** state the verdict as an action in the condensed display headline and let the stamp carry the grade ink.",
+      "**Do** raise detail by laying a leaf of bright stock (paper-hi) over the sheet, with the slip shadow and a slight rotation.",
+      "**Do** draw photo outlines with a dark halo under a light line so they read on any fruit.",
+      "**Do** keep motion to paper feed and stamp impact, and remove all of it under reduced motion.",
+      "**Do** put the report before the plate below 960px, and open the berry slip in flow under its lot line."
+    ],
+    "donts": [
+      "**Don't** use vermilion for anything other than reject.",
+      "**Don't** show ripeness by colour alone, in any mark, bar or legend.",
+      "**Don't** rank content with cards, stat tiles, tinted panels or a top app bar; the sheet and its leaves are the only surfaces.",
+      "**Don't** set verdicts or ripeness names at normal width, or set prose in mono.",
+      "**Don't** show model confidence up front; it lives in the slip's closed disclosure.",
+      "**Don't** add motion beyond the paper feed, stamp impact and the small state transitions listed in Components."
+    ]
+  }
+}

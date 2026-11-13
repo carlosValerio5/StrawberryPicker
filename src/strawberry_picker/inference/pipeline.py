@@ -36,7 +36,7 @@ from strawberry_picker.images import open_rgb
 from strawberry_picker.labeling.proposals import DetectFn, non_max_suppression
 from strawberry_picker.models.defect_probe import DefectHead
 from strawberry_picker.models.linear_probe import load_probe, predict_all_classes
-from strawberry_picker.paths import Layer, layer_dir
+from strawberry_picker.paths import Layer, layer_dir, models_dir
 from strawberry_picker.schema import grade_from_defects
 
 BBox = tuple[float, float, float, float]
@@ -347,3 +347,9 @@ def predict_paths(
             annotate_dir.mkdir(parents=True, exist_ok=True)
             annotate(image, predictions).save(annotate_dir / f"{Path(path).stem}.jpg", quality=90)
     return records
+
+
+def newest_run(task: str) -> Path | None:
+    """The newest run folder under ``models/<task>/`` (run ids are UTC timestamps)."""
+    runs = sorted((models_dir() / task).glob("*/probe.joblib"))
+    return runs[-1].parent if runs else None
