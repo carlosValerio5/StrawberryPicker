@@ -24,15 +24,10 @@ from strawberry_picker.inference import (
     ensure_not_locked,
     image_paths,
     load_predictor,
+    newest_run,
     predict_paths,
 )
-from strawberry_picker.paths import models_dir, reports_dir
-
-
-def newest_run(task: str) -> Path | None:
-    """The newest run folder under ``models/<task>/`` (run ids are UTC timestamps)."""
-    runs = sorted((models_dir() / task).glob("*/probe.joblib"))
-    return runs[-1].parent if runs else None
+from strawberry_picker.paths import reports_dir
 
 
 def main() -> None:

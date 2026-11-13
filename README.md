@@ -28,6 +28,19 @@ make check        # lint + tests
 uv run python scripts/predict.py <photo or folder> --out preds.json --annotate
 ```
 
+### Run the inspection demo
+
+A page for live presentations. Drop a phone photo of strawberries and get a one-tray report:
+every berry outlined, its ripeness, mold/rot and grade, plus the tray's verdict and why.
+
+```bash
+uv run python scripts/demo.py --precompute <photos>   # once: sample trays for instant opening
+uv run python scripts/demo.py                         # serves http://127.0.0.1:8766
+```
+
+The model warms up in the background (minutes on CPU), and sample trays open right away.
+Keys: arrow keys step through berries, `M` toggles the model view, `N` starts a new report.
+
 Needs `make setup-ml`. The first run downloads the weights. Results are development
 numbers only. See [docs/model-card-v1.md](docs/model-card-v1.md) for what the model does,
 its results and its limitations.

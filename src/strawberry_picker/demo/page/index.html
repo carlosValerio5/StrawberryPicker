@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#2a2e2b">
+<title>StrawberryPicker · Inspection report</title>
+<link rel="preload" href="fonts/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/martian-mono-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<svg class="defs" aria-hidden="true" focusable="false">
+  <filter id="ink-grain" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="noise"/>
+    <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.1 1.32" result="speckle"/>
+    <feComposite in="SourceGraphic" in2="speckle" operator="in"/>
+  </filter>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11m0-11l-11 11" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<div class="sheet" id="sheet">
+  <div class="feed feed-left" aria-hidden="true"></div>
+
+  <section class="plate" id="plate" aria-label="Tray photo">
+    <div class="plate-stage" id="stage">
+      <figure class="photo" id="photo" hidden>
+        <svg class="marks" id="marks" role="group" aria-label="Berries found in the photo"></svg>
+      </figure>
+
+      <div class="contact" id="contact" hidden>
+        <p class="contact-head">Sample trays on file · open one to print its report</p>
+        <label class="drop-strip" for="file">
+          <svg aria-hidden="true"><use href="#i-upload"/></svg>
+          <span>Drop a phone photo of a tray here, or click to choose one</span>
+          <span class="drop-strip-note">JPEG, PNG or iPhone HEIC</span>
+        </label>
+        <ol class="contact-grid" id="samples"></ol>
+      </div>
+
+      <label class="intake" id="intake" for="file">
+        <input type="file" id="file" accept="image/*,.heic,.heif" class="visually-hidden">
+        <span class="intake-frame">
+          <svg class="intake-icon" aria-hidden="true"><use href="#i-upload"/></svg>
+          <span class="intake-title">Drop a phone photo of a tray</span>
+          <span class="intake-sub">or click to choose a file · JPEG, PNG or iPhone HEIC</span>
+        </span>
+      </label>
+
+      <aside class="slip" id="slip" hidden>
+        <button class="slip-close" id="slip-close" type="button" aria-label="Close berry details">
+          <svg aria-hidden="true"><use href="#i-close"/></svg>
+        </button>
+        <div class="slip-crop" id="slip-crop" role="img" aria-label=""></div>
+        <div class="slip-body">
+          <p class="slip-code" id="slip-code"></p>
+          <p class="slip-ripeness" id="slip-ripeness"></p>
+          <dl class="slip-facts">
+            <div><dt>Defects</dt><dd id="slip-defects"></dd></div>
+            <div><dt>Grade</dt><dd id="slip-grade"></dd></div>
+          </dl>
+          <details class="slip-confidence" id="slip-confidence">
+            <summary>Model confidence</summary>
+            <ul id="slip-probs"></ul>
+          </details>
+        </div>
+      </aside>
+    </div>
+
+    <p class="plate-caption">
+      <span id="plate-caption">Plate 1 · awaiting a tray photo</span>
+      <label class="toggle" id="model-toggle-wrap" hidden>
+        <input type="checkbox" id="model-toggle" checked>
+        <span class="toggle-box" aria-hidden="true"></span>
+        <span>Model view</span>
+        <kbd>M</kbd>
+      </label>
+    </p>
+  </section>
+
+  <main class="report" id="report" tabindex="-1">
+    <header class="masthead">
+      <p class="wordmark">StrawberryPicker</p>
+      <p class="wire" id="wire" data-state="warming">
+        <span class="wire-dot" aria-hidden="true"></span>
+        <span id="wire-text">Model warming up</span>
+      </p>
+      <p class="dateline" id="dateline">Report 001 · unfiled</p>
+    </header>
+
+    <div class="fileline">
+      <span class="fileline-label">File</span>
+      <span class="fileline-field" id="file-name">unfiled</span>
+      <button class="fileline-action" id="choose" type="button">
+        <svg aria-hidden="true"><use href="#i-upload"/></svg>
+        <span>New photo</span>
+      </button>
+    </div>
+    <nav class="trays" id="trays" aria-label="Sample trays on file" hidden></nav>
+
+    <section class="form" id="form" aria-labelledby="form-title">
+      <h1 class="headline" id="form-title">File a tray photo.</h1>
+      <p class="condition">Every berry is found, graded for ripeness, checked for mold and rot, and listed as its own lot line.</p>
+      <p class="hint" id="warm-hint">Live photos open once the model has warmed up. Sample trays open right away.</p>
+      <p class="index-empty" id="samples-empty" hidden>No sample trays on file yet. Run <code>scripts/demo.py --precompute &lt;photos&gt;</code> to add some.</p>
+
+      <h2 class="rubric">How to read a report</h2>
+      <dl class="legend">
+        <div><dt><span class="form-swatch m-ripe" aria-hidden="true"></span>Ripe</dt><dd>Solid outline. Ready to pick and ship.</dd></div>
+        <div><dt><span class="form-swatch m-unripe" aria-hidden="true"></span>Unripe</dt><dd>Dashed outline. Not ripe yet.</dd></div>
+        <div><dt><span class="form-swatch m-overripe" aria-hidden="true"></span>Overripe</dt><dd>Double outline. Past peak; sell fast or process.</dd></div>
+        <div><dt><span class="mini-stamp">Reject</span></dt><dd>Mold or rot seen. Pull the berry.</dd></div>
+        <div><dt><span class="legend-grade">Premium</span></dt><dd>No defect seen. Counts toward pack-out.</dd></div>
+      </dl>
+    </section>
+
+    <article class="filed" id="filed" hidden aria-labelledby="verdict">
+      <div class="verdict-row">
+        <p class="stamp" id="stamp" aria-hidden="true"></p>
+        <h1 class="headline" id="verdict" tabindex="-1"></h1>
+      </div>
+      <p class="condition" id="condition"></p>
+
+      <dl class="tally" id="tally"></dl>
+      <div class="mixes" id="mixes">
+        <span class="mix-label">Ripeness mix</span><div class="mixbar" id="mixbar" role="img"></div><span class="mix-count" id="mix-count"></span>
+        <span class="mix-label">Grade mix</span><div class="mixbar" id="gradebar" role="img"></div><span class="mix-count" id="grade-count"></span>
+      </div>
+
+      <table class="lots" id="lots">
+        <caption class="rubric">Lot lines · one per berry <span class="rubric-note">Defects checked: mold, rot</span></caption>
+        <thead>
+          <tr><th scope="col">Lot</th><th scope="col">Ripeness</th><th scope="col">Defects</th><th scope="col" class="num">Grade</th></tr>
+        </thead>
+        <tbody id="lot-rows"></tbody>
+      </table>
+
+      <div class="actions actions-end">
+        <button class="press press-quiet" id="new-file" type="button">
+          <svg aria-hidden="true"><use href="#i-back"/></svg>
+          <span>New report</span>
+          <kbd>N</kbd>
+        </button>
+      </div>
+    </article>
+
+    <section class="printing" id="printing" hidden aria-live="polite">
+      <h1 class="headline headline-quiet">Reading the photo<span class="caret" aria-hidden="true"></span></h1>
+      <p class="condition" id="printing-text">Finding each berry, then grading it. This takes about half a minute on this laptop.</p>
+      <ol class="ghost-lines" aria-hidden="true">
+        <li></li><li></li><li></li><li></li><li></li><li></li>
+      </ol>
+    </section>
+
+    <p class="errata" id="errata" role="alert" hidden></p>
+  </main>
+
+  <div class="feed feed-right" aria-hidden="true"></div>
+  <div class="drop-veil" id="drop-veil" aria-hidden="true"><span>Release to file this photo</span></div>
+</div>
+
+<script src="app.js" defer></script>
+</body>
+</html>
